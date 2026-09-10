@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { notifyNewOrder, notifyNewRental } = require('./notifier');
 const express = require('express');
 const cors = require('cors');
