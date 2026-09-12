@@ -636,20 +636,20 @@ app.get('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, company, phone } = req.body;
+  const { name, email, company, phone, role } = req.body;
   const db = getDb();
-  const newCustomer = {
-    id: `cust-${Date.now()}`,
+  const newUser = {
+    id: `${(role || 'customer').startsWith('admin') ? 'admin' : 'cust'}-${Date.now()}`,
     name,
     email: email ? email.toLowerCase() : '',
-    passwordHash: '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g',
-    role: 'customer',
+    passwordHash: '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g', // default: password123
+    role: role || 'customer',
     company: company || '',
     phone: phone || ''
   };
-  db.users.push(newCustomer);
+  db.users.push(newUser);
   await saveDb(db);
-  res.status(201).json({ success: true, customer: sanitizeRecord(newCustomer) });
+  res.status(201).json({ success: true, user: sanitizeRecord(newUser) });
 });
 
 app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) => {
