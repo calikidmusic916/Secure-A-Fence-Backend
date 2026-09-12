@@ -1,40 +1,14 @@
 {
   "users": [
     {
-      "id": "admin-1",
-      "name": "Site Manager Admin",
-      "email": "admin@secureafence.com",
-      "passwordHash": "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
-      "role": "admin",
-      "company": "Secure-A-Fence Operations",
-      "phone": "279-261-3890"
-    },
-    {
-      "id": "cust-1",
-      "name": "John Builder",
-      "email": "john@apexconstruction.com",
-      "passwordHash": "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
-      "role": "customer",
-      "company": "Apex Construction Services",
-      "phone": "(555) 234-5678"
-    },
-    {
-      "id": "cust-1787935513806",
-      "name": "Attacker",
-      "email": "attacker-1787935513526@test.com",
-      "passwordHash": "$2b$10$ctyhFxYe5yfIvIqDSnLRJuPWR0IjWiihFeFnHaibYa.awDGYMVIWi",
-      "role": "customer",
-      "company": "",
-      "phone": ""
-    },
-    {
       "id": "cust-1787937478930",
       "name": "Attacker",
       "email": "attacker-1787937478697@test.com",
       "passwordHash": "$2b$10$FfCyzlyqRkXz2l/0tgKXGedizsr6/Oxu0hn.V1tI84xeKiTls8zUK",
       "role": "customer",
       "company": "",
-      "phone": ""
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
     },
     {
       "id": "cust-1787974874693",
@@ -43,7 +17,8 @@
       "passwordHash": "$2b$10$H2DGifCUXE/u8y9g3SkSBeNYvEfZVdw3Mjf/1Ec6.ez7Ro569J1vi",
       "role": "customer",
       "company": "",
-      "phone": ""
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
     },
     {
       "id": "cust-1787974977597",
@@ -52,7 +27,8 @@
       "passwordHash": "$2b$10$caY99OgOAWhP6R2PFUO9/OjXue5.hynbW92J6Ujezd0VPh43E6ps6",
       "role": "customer",
       "company": "",
-      "phone": ""
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
     },
     {
       "id": "cust-1787975015205",
@@ -61,7 +37,8 @@
       "passwordHash": "$2b$10$BbjVKT/F6etYAgULC9oWQO36zV.kL87r9eLLJeJhHn3wLbV3KM.US",
       "role": "customer",
       "company": "",
-      "phone": ""
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
     },
     {
       "id": "cust-1788065859731",
@@ -70,7 +47,48 @@
       "passwordHash": "$2b$10$jz/jJbbDntYdqqenxFIjXOLQQXrEAlpqvwOipLDwkJ4ek8RWc4pVe",
       "role": "customer",
       "company": "",
-      "phone": ""
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
+    },
+    {
+      "id": "cust-1789240740556",
+      "name": "Test Account",
+      "email": "calikidmusic916@gmail.com",
+      "passwordHash": "$2b$10$FGNnFup.gTNMU4t.Cishde./oI8vQDue7IWveCUsjNXwSmCVw4C6e",
+      "role": "customer",
+      "company": "Test Company",
+      "phone": "",
+      "created_at": null
+    },
+    {
+      "id": "admin-1",
+      "name": "Site Manager Admin",
+      "email": "admin@secureafence.com",
+      "passwordHash": "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
+      "role": "admin",
+      "company": "Secure-A-Fence Operations",
+      "phone": "279-261-3890",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
+    },
+    {
+      "id": "cust-1",
+      "name": "John Builder",
+      "email": "john@apexconstruction.com",
+      "passwordHash": "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
+      "role": "customer",
+      "company": "Apex Construction Services",
+      "phone": "(555) 234-5678",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
+    },
+    {
+      "id": "cust-1787935513806",
+      "name": "Attacker",
+      "email": "attacker-1787935513526@test.com",
+      "passwordHash": "$2b$10$ctyhFxYe5yfIvIqDSnLRJuPWR0IjWiihFeFnHaibYa.awDGYMVIWi",
+      "role": "customer",
+      "company": "",
+      "phone": "",
+      "created_at": "2026-09-12T18:22:34.400044+00:00"
     }
   ],
   "products": [
@@ -81,11 +99,12 @@
       "type": "panel",
       "salePrice": 65,
       "rentalPriceMonthly": 15,
-      "inStock": 300,
-      "rentedCount": 90,
+      "inStock": 226,
+      "rentedCount": 94,
       "description": "Heavy-duty 11-gauge galvanized chain-link mesh with sturdy welded tubular steel frame (6ft x 12ft). Fully refurbished and cross-braced.",
       "image": "/assets/panel.png",
-      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
+      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-panel-6x10",
@@ -98,7 +117,8 @@
       "rentedCount": 60,
       "description": "Standard 6ft x 10ft refurbished temporary chain-link fence panel. Ideal for tighter perimeters and flexible jobsite layouts.",
       "image": "/assets/panel.png",
-      "specs": "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
+      "specs": "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
+      "suspended": false
     },
     {
       "id": "prod-stand-sale",
@@ -107,11 +127,12 @@
       "type": "stand",
       "salePrice": 10,
       "rentalPriceMonthly": 3,
-      "inStock": 600,
-      "rentedCount": 130,
+      "inStock": 571,
+      "rentedCount": 114,
       "description": "Lightweight and easy to handle rectangular tubular steel base with dual upright sleeves. Designed for standard hard asphalt and concrete perimeters.",
       "image": "/assets/stand.png",
-      "specs": "Style: Flat Stand | Dimensions: 36\" x 16\" | Weight: 24 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Flat Stand | Dimensions: 36\" x 16\" | Weight: 24 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": false
     },
     {
       "id": "prod-stand-braced",
@@ -124,7 +145,8 @@
       "rentedCount": 85,
       "description": "Includes angular diagonal steel bracing for high wind resistance and extra lateral support on open job sites.",
       "image": "/assets/stand.png",
-      "specs": "Style: Braced Stand | Feature: Dual Diagonal Support Struts | Weight: 32 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Braced Stand | Feature: Dual Diagonal Support Struts | Weight: 32 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-stand-heavyduty",
@@ -137,7 +159,8 @@
       "rentedCount": 70,
       "description": "Built with reinforced dual cross-member grid tubes for maximum structural strength, long perimeter runs, and heavy traffic zones.",
       "image": "/assets/stand.png",
-      "specs": "Style: Heavy Duty Stand | Feature: Quad Cross-Bar Construction | Weight: 38 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Heavy Duty Stand | Feature: Quad Cross-Bar Construction | Weight: 38 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-stand-cross",
@@ -150,7 +173,8 @@
       "rentedCount": 95,
       "description": "4-point wide footprint cross-pipe configuration ideal for dirt, gravel, turf, and soft uneven ground surfaces.",
       "image": "/assets/stand.png",
-      "specs": "Style: Cross Stand | Feature: 4-Way Surface Spanning Arms | Weight: 26 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Cross Stand | Feature: 4-Way Surface Spanning Arms | Weight: 26 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-stand-plate",
@@ -163,7 +187,8 @@
       "rentedCount": 50,
       "description": "Solid smooth steel plate base offering a flush, low-profile footprint to prevent tripping hazards on pedestrian walkways.",
       "image": "/assets/stand.png",
-      "specs": "Style: Plate Stand | Feature: Flush Beveled Steel Plate | Weight: 30 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Plate Stand | Feature: Flush Beveled Steel Plate | Weight: 30 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-stand-wheel",
@@ -176,7 +201,8 @@
       "rentedCount": 40,
       "description": "Equipped with heavy-duty locking swivel caster wheels for quick gate opening, repositioning, and mobile perimeter access points.",
       "image": "/assets/stand.png",
-      "specs": "Style: Wheel Stand | Feature: 4 Heavy-Duty Locking Casters | Weight: 34 lbs | Finish: Hot-Dip Galvanized"
+      "specs": "Style: Wheel Stand | Feature: 4 Heavy-Duty Locking Casters | Weight: 34 lbs | Finish: Hot-Dip Galvanized",
+      "suspended": true
     },
     {
       "id": "prod-stand-sandbag",
@@ -189,7 +215,8 @@
       "rentedCount": 60,
       "description": "Flat tubular steel frame base equipped with dual heavy-gauge canvas sandbags for extra stability against high winds and storms.",
       "image": "/assets/stand.png",
-      "specs": "Style: Sandbag Stand | Feature: Frame + 2 Pre-filled 50lb Sandbags | Total Weight: 124 lbs | Finish: Galvanized Steel"
+      "specs": "Style: Sandbag Stand | Feature: Frame + 2 Pre-filled 50lb Sandbags | Total Weight: 124 lbs | Finish: Galvanized Steel",
+      "suspended": true
     },
     {
       "id": "prod-clip-sale",
@@ -198,11 +225,12 @@
       "type": "clip",
       "salePrice": 5,
       "rentalPriceMonthly": 1,
-      "inStock": 1200,
-      "rentedCount": 260,
+      "inStock": 1260,
+      "rentedCount": 200,
       "description": "High-tensile steel coupler clamp used to join adjacent fence panels together securely at top and mid rail.",
       "image": "/assets/clip.svg",
-      "specs": "Material: Forged Steel | Bolt: 1/2\" Galvanized Carriage Bolt included"
+      "specs": "Material: Forged Steel | Bolt: 1/2\" Galvanized Carriage Bolt included",
+      "suspended": false
     },
     {
       "id": "prod-screen-sale",
@@ -215,7 +243,8 @@
       "rentedCount": 15,
       "description": "High-density polyethylene knitted fabric providing 88% visual blockage and wind resistance for site privacy.",
       "image": "/assets/privacy_screen.svg",
-      "specs": "Length: 50 ft | Height: 5'8\" | Brass Grommets every 24\""
+      "specs": "Length: 50 ft | Height: 5'8\" | Brass Grommets every 24\"",
+      "suspended": true
     }
   ],
   "orders": [
@@ -229,22 +258,24 @@
       "orderType": "rental",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
-          "unitPrice": 15,
+          "total": 75,
           "quantity": 5,
-          "total": 75
+          "productId": "prod-panel-6x12",
+          "unitPrice": 15
         }
       ],
       "subtotal": 75,
       "deliveryFee": 0,
       "tax": 6,
       "totalAmount": 81,
-      "status": "Processing",
+      "status": "Completed",
       "deliveryAddress": "456 Rental Jobsite",
       "jobsiteContact": "Attacker",
       "deliveryDate": "2026-08-30",
-      "createdAt": "2026-08-30T04:57:39.837Z"
+      "createdAt": "2026-08-30T04:57:39.837Z",
+      "paymentStatus": "Unpaid",
+      "paymentMethod": "None"
     },
     {
       "id": "ORD-7717",
@@ -256,22 +287,24 @@
       "orderType": "rental",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
-          "unitPrice": 15,
+          "total": 75,
           "quantity": 5,
-          "total": 75
+          "productId": "prod-panel-6x12",
+          "unitPrice": 15
         }
       ],
       "subtotal": 75,
       "deliveryFee": 0,
       "tax": 6,
       "totalAmount": 81,
-      "status": "Processing",
+      "status": "Completed",
       "deliveryAddress": "456 Rental Jobsite",
       "jobsiteContact": "Attacker",
       "deliveryDate": "2026-08-29",
-      "createdAt": "2026-08-29T03:43:35.301Z"
+      "createdAt": "2026-08-29T03:43:35.301Z",
+      "paymentStatus": "Unpaid",
+      "paymentMethod": "None"
     },
     {
       "id": "ORD-6414",
@@ -283,22 +316,24 @@
       "orderType": "rental",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
-          "unitPrice": 15,
+          "total": 75,
           "quantity": 5,
-          "total": 75
+          "productId": "prod-panel-6x12",
+          "unitPrice": 15
         }
       ],
       "subtotal": 75,
       "deliveryFee": 0,
       "tax": 6,
       "totalAmount": 81,
-      "status": "Processing",
+      "status": "Completed",
       "deliveryAddress": "456 Rental Jobsite",
       "jobsiteContact": "Attacker",
       "deliveryDate": "2026-08-29",
-      "createdAt": "2026-08-29T03:42:57.714Z"
+      "createdAt": "2026-08-29T03:42:57.714Z",
+      "paymentStatus": "Unpaid",
+      "paymentMethod": "None"
     },
     {
       "id": "ORD-8941",
@@ -310,38 +345,73 @@
       "orderType": "sale",
       "items": [
         {
-          "productId": "prod-panel-6x10",
           "name": "Refurbished Temporary Fence Panel (6' x 10')",
-          "unitPrice": 65,
+          "total": 1300,
           "quantity": 20,
-          "total": 1300
+          "productId": "prod-panel-6x10",
+          "unitPrice": 65
         },
         {
-          "productId": "prod-stand-sale",
           "name": "Heavy-Duty Fence Panel Stand / Base",
-          "unitPrice": 10,
+          "total": 210,
           "quantity": 21,
-          "total": 210
+          "productId": "prod-stand-sale",
+          "unitPrice": 10
         },
         {
-          "productId": "prod-clip-sale",
           "name": "Safety Clamp / Panel Connector Clip",
-          "unitPrice": 5,
+          "total": 100,
           "quantity": 20,
-          "total": 100
+          "productId": "prod-clip-sale",
+          "unitPrice": 5
         }
       ],
       "subtotal": 1610,
       "deliveryFee": 150,
       "tax": 128.8,
       "totalAmount": 1888.8,
-      "status": "Delivered",
+      "status": "Completed",
       "deliveryAddress": "742 Evergreen Terrace, Jobsite Alpha, Metro Industrial Park",
+      "jobsiteContact": null,
       "deliveryDate": "2026-08-20",
-      "createdAt": "2026-08-18T10:30:00.000Z"
+      "createdAt": "2026-08-18T10:30:00.000Z",
+      "paymentStatus": "Unpaid",
+      "paymentMethod": "None"
     }
   ],
   "rentals": [
+    {
+      "id": "RNT-6689",
+      "orderId": "ORD-3600",
+      "customerId": "cust-1789240740556",
+      "customerName": "Test Account",
+      "customerCompany": "Test Company",
+      "customerEmail": "calikidmusic916@gmail.com",
+      "customerPhone": "N/A",
+      "jobsiteAddress": "Sacramento, CA",
+      "jobsiteContact": "Mike Davis (555-987-6543)",
+      "startDate": "2026-09-12",
+      "endDate": "2026-10-12",
+      "monthlyRateTotal": 72,
+      "status": "Active",
+      "items": [
+        {
+          "name": "Refurbished Temporary Fence Panel (6' x 12')",
+          "quantity": 4,
+          "subtotal": 60,
+          "productId": "prod-panel-6x12",
+          "monthlyUnitPrice": 15
+        },
+        {
+          "name": "Flat Stand (Standard Tubular Base)",
+          "quantity": 4,
+          "subtotal": 12,
+          "productId": "prod-stand-sale",
+          "monthlyUnitPrice": 3
+        }
+      ],
+      "notes": "New rental agreement placed online."
+    },
     {
       "id": "RNT-9795",
       "orderId": "ORD-9458",
@@ -358,11 +428,11 @@
       "status": "Returned",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
           "quantity": 5,
-          "monthlyUnitPrice": 15,
-          "subtotal": 75
+          "subtotal": 75,
+          "productId": "prod-panel-6x12",
+          "monthlyUnitPrice": 15
         }
       ],
       "notes": "New rental agreement placed online."
@@ -383,11 +453,11 @@
       "status": "Returned",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
           "quantity": 5,
-          "monthlyUnitPrice": 15,
-          "subtotal": 75
+          "subtotal": 75,
+          "productId": "prod-panel-6x12",
+          "monthlyUnitPrice": 15
         }
       ],
       "notes": "New rental agreement placed online."
@@ -408,11 +478,11 @@
       "status": "Returned",
       "items": [
         {
-          "productId": "prod-panel-6x12",
           "name": "Refurbished Temporary Fence Panel (6' x 12')",
           "quantity": 5,
-          "monthlyUnitPrice": 15,
-          "subtotal": 75
+          "subtotal": 75,
+          "productId": "prod-panel-6x12",
+          "monthlyUnitPrice": 15
         }
       ],
       "notes": "New rental agreement placed online."
@@ -430,44 +500,34 @@
       "startDate": "2026-08-01",
       "endDate": "2026-09-01",
       "monthlyRateTotal": 420,
-      "status": "Active",
+      "status": "Returned",
       "items": [
         {
-          "productId": "prod-panel-sale",
           "name": "Refurbished Panel (Rental)",
           "quantity": 20,
-          "monthlyUnitPrice": 15,
-          "subtotal": 300
+          "subtotal": 300,
+          "productId": "prod-panel-sale",
+          "monthlyUnitPrice": 15
         },
         {
-          "productId": "prod-stand-sale",
           "name": "Fence Stand (Rental)",
           "quantity": 20,
-          "monthlyUnitPrice": 3,
-          "subtotal": 60
+          "subtotal": 60,
+          "productId": "prod-stand-sale",
+          "monthlyUnitPrice": 3
         },
         {
-          "productId": "prod-clip-sale",
           "name": "Safety Clip (Rental)",
           "quantity": 60,
-          "monthlyUnitPrice": 1,
-          "subtotal": 60
+          "subtotal": 60,
+          "productId": "prod-clip-sale",
+          "monthlyUnitPrice": 1
         }
       ],
-      "notes": "Installed along South perimeter. Customer requested extra clips."
+      "notes": "Installed along South perimeter. Customer requested extra clips. | Automatically marked Overdue on 2026-09-12"
     }
   ],
   "shipments": [
-    {
-      "id": "SHIP-5263",
-      "orderId": "ORD-9458",
-      "type": "Rental Deployment",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-08-30",
-      "status": "Pending Dispatch",
-      "destination": "456 Rental Jobsite",
-      "notes": "Awaiting warehouse loadout."
-    },
     {
       "id": "SHIP-7536",
       "orderId": "ORD-7717",
@@ -507,6 +567,67 @@
       "status": "Delivered & Erected",
       "destination": "1024 Commercial Way, Downtown Tower Project",
       "notes": "Rental panel layout setup completed per site diagram."
+    },
+    {
+      "id": "SHIP-5706",
+      "orderId": "ORD-1276",
+      "type": "Outbound Sale Delivery",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-09-12",
+      "status": "Pending Dispatch",
+      "destination": "Sacramento, CA",
+      "notes": "Awaiting warehouse loadout."
+    },
+    {
+      "id": "SHIP-5907",
+      "orderId": "ORD-2804",
+      "type": "Outbound Sale Delivery",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-09-12",
+      "status": "Pending Dispatch",
+      "destination": "Sacramento, CA",
+      "notes": "Awaiting warehouse loadout."
+    },
+    {
+      "id": "SHIP-3545",
+      "orderId": "ORD-9057",
+      "type": "Outbound Sale Delivery",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-09-12",
+      "status": "Pending Dispatch",
+      "destination": "Sacramento, CA",
+      "notes": "Awaiting warehouse loadout."
+    },
+    {
+      "id": "SHIP-7565",
+      "orderId": "ORD-3600",
+      "type": "Rental Deployment",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-09-12",
+      "status": "Pending Dispatch",
+      "destination": "Sacramento, CA",
+      "notes": "Awaiting warehouse loadout."
+    },
+    {
+      "id": "SHIP-1329",
+      "orderId": "ORD-3250",
+      "type": "Outbound Sale Delivery",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-09-12",
+      "status": "Pending Dispatch",
+      "destination": "Sacramento, CA",
+      "notes": "Awaiting warehouse loadout."
+    },
+    {
+      "id": "SHIP-5263",
+      "orderId": "ORD-9458",
+      "type": "Rental Deployment",
+      "driverName": "Unassigned Dispatcher",
+      "dispatchDate": "2026-08-30",
+      "status": "Pending Dispatch",
+      "destination": "456 Rental Jobsite",
+      "notes": "Awaiting warehouse loadout."
     }
-  ]
+  ],
+  "invoices": []
 }

@@ -23,8 +23,15 @@ const uploadDir = isRender ? '/tmp/uploads' : path.join(__dirname, 'public', 'up
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
+    try {
+      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (e) {
+      // Fallback to /tmp if read-only
+      const fallbackDir = '/tmp/uploads';
+      if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
+      cb(null, fallbackDir);
+    }
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -33,10 +40,9 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Serve uploads from /tmp if on Render
-if (isRender) {
-  app.use('/uploads', express.static('/tmp/uploads'));
-}
+// Serve uploads
+app.use('/uploads', express.static(uploadDir));
+app.use('/uploads', express.static('/tmp/uploads'));
 
 // Middleware to verify JWT Token
 function authenticateToken(req, res, next) {
