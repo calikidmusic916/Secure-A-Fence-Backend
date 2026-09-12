@@ -38,76 +38,17 @@ const initialData = {
       role: "admin",
       company: "Secure-A-Fence Operations",
       phone: "279-261-3890"
-    },
-    {
-      id: "cust-1",
-      name: "John Builder",
-      email: "john@apexconstruction.com",
-      passwordHash: "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
-      role: "customer",
-      company: "Apex Construction Services",
-      phone: "(555) 234-5678"
     }
   ],
-  products: [
-    {
-      id: "prod-panel-6x12",
-      name: "Refurbished Temporary Fence Panel (6' x 12')",
-      category: "sales",
-      type: "panel",
-      salePrice: 65.00,
-      rentalPriceMonthly: 15.00,
-      inStock: 300,
-      rentedCount: 90,
-      description: "Heavy-duty 11-gauge galvanized chain-link mesh with sturdy welded tubular steel frame (6ft x 12ft). Fully refurbished and cross-braced.",
-      image: "/assets/panel.png",
-      specs: "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
-    },
-    {
-      id: "prod-panel-6x10",
-      name: "Refurbished Temporary Fence Panel (6' x 10')",
-      category: "sales",
-      type: "panel",
-      salePrice: 50.00,
-      rentalPriceMonthly: 12.00,
-      inStock: 250,
-      rentedCount: 60,
-      description: "Standard 6ft x 10ft refurbished temporary chain-link fence panel. Ideal for tighter perimeters and flexible jobsite layouts.",
-      image: "/assets/panel.png",
-      specs: "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
-    },
-    {
-      id: "prod-stand-sale",
-      name: "Flat Stand (Standard Tubular Base)",
-      category: "sales",
-      type: "stand",
-      salePrice: 10.00,
-      rentalPriceMonthly: 3.00,
-      inStock: 600,
-      rentedCount: 130,
-      description: "Lightweight rectangular tubular steel base with dual upright sleeves.",
-      image: "/assets/stand.png",
-      specs: "Style: Flat Stand | Dimensions: 36\" x 16\" | Weight: 24 lbs"
-    },
-    {
-      id: "prod-clip-sale",
-      name: "Safety Clamp / Panel Connector Clip",
-      category: "sales",
-      type: "clip",
-      salePrice: 5.00,
-      rentalPriceMonthly: 1.00,
-      inStock: 1200,
-      rentedCount: 260,
-      description: "High-tensile steel coupler clamp used to join adjacent fence panels together.",
-      image: "/assets/clip.webp",
-      specs: "Material: Forged Steel | Bolt: 1/2\" Galvanized Carriage Bolt"
-    }
-  ],
+  products: [],
   orders: [],
   rentals: [],
   shipments: [],
   invoices: []
 };
+
+let cachedDb = initialData;
+let isHydrated = false;
 
 function getLocalDb() {
   try {
@@ -120,13 +61,14 @@ function getLocalDb() {
   return initialData;
 }
 
-let cachedDb = getLocalDb();
+// Initial load from local file (if exists)
+cachedDb = getLocalDb();
 
 function getDb() {
   return cachedDb;
 }
 
-function saveDb(data) {
+async function saveDb(data) {
   cachedDb = data;
   try {
     const dir = path.dirname(LOCAL_DB_PATH);
@@ -136,28 +78,24 @@ function saveDb(data) {
     console.error('Local DB save error:', e);
   }
 
-  // Asynchronously sync data to Supabase
-  syncToSupabase(data).catch(err => console.error('Supabase sync error:', err.message));
+  // Synchronously wait for Supabase sync to ensure data persistence
+  await syncToSupabase(data);
 }
 
 async function syncToSupabase(db) {
   if (!supabase) return;
   try {
-    if (db.users && db.users.length > 0) {
-      await supabase.from('users').upsert(db.users);
-    }
-    if (db.products && db.products.length > 0) {
-      await supabase.from('products').upsert(db.products);
-    }
-    if (db.orders && db.orders.length > 0) {
-      await supabase.from('orders').upsert(db.orders);
-    }
-    if (db.rentals && db.rentals.length > 0) {
-      await supabase.from('rentals').upsert(db.rentals);
-    }
-    if (db.shipments && db.shipments.length > 0) {
-      await supabase.from('shipments').upsert(db.shipments);
-    }
+    const syncTasks = [];
+
+    if (db.users?.length > 0) syncTasks.push(supabase.from('users').upsert(db.users));
+    if (db.products?.length > 0) syncTasks.push(supabase.from('products').upsert(db.products));
+    if (db.orders?.length > 0) syncTasks.push(supabase.from('orders').upsert(db.orders));
+    if (db.rentals?.length > 0) syncTasks.push(supabase.from('rentals').upsert(db.rentals));
+    if (db.shipments?.length > 0) syncTasks.push(supabase.from('shipments').upsert(db.shipments));
+    if (db.invoices?.length > 0) syncTasks.push(supabase.from('invoices').upsert(db.invoices));
+
+    await Promise.all(syncTasks);
+    console.log('Successfully synced data to Supabase.');
   } catch (err) {
     console.error('Supabase sync error:', err.message);
   }
@@ -167,40 +105,47 @@ async function syncToSupabase(db) {
 async function initDbFromSupabase() {
   if (!supabase) {
     console.log('No Supabase connection. Using local data.');
+    isHydrated = true;
     return;
   }
-  console.log('Connecting to Supabase...');
+
+  console.log('Connecting to Supabase to fetch persistent data...');
   try {
-    const { data: users, error: uErr } = await supabase.from('users').select('*');
-    if (uErr) throw uErr;
-    const { data: products, error: pErr } = await supabase.from('products').select('*');
-    if (pErr) throw pErr;
-    const { data: orders } = await supabase.from('orders').select('*');
-    const { data: rentals } = await supabase.from('rentals').select('*');
-    const { data: shipments } = await supabase.from('shipments').select('*');
+    const [
+      { data: users },
+      { data: products },
+      { data: orders },
+      { data: rentals },
+      { data: shipments },
+      { data: invoices }
+    ] = await Promise.all([
+      supabase.from('users').select('*'),
+      supabase.from('products').select('*'),
+      supabase.from('orders').select('*'),
+      supabase.from('rentals').select('*'),
+      supabase.from('shipments').select('*'),
+      supabase.from('invoices').select('*')
+    ]);
 
-    if (users && users.length > 0) {
-      cachedDb.users = users;
-      console.log(`Loaded ${users.length} users from Supabase.`);
-    }
-    if (products && products.length > 0) {
-      cachedDb.products = products;
-      console.log(`Loaded ${products.length} products from Supabase.`);
-    }
-    if (orders && orders.length > 0) cachedDb.orders = orders;
-    if (rentals && rentals.length > 0) cachedDb.rentals = rentals;
-    if (shipments && shipments.length > 0) cachedDb.shipments = shipments;
+    if (users) cachedDb.users = users;
+    if (products) cachedDb.products = products;
+    if (orders) cachedDb.orders = orders;
+    if (rentals) cachedDb.rentals = rentals;
+    if (shipments) cachedDb.shipments = shipments;
+    if (invoices) cachedDb.invoices = invoices;
 
-    console.log('Database hydrated successfully from Supabase.');
+    console.log(`Persistence check: Loaded ${cachedDb.orders?.length || 0} orders and ${cachedDb.users?.length || 0} users from Supabase.`);
+    isHydrated = true;
   } catch (e) {
     console.error('Supabase hydration error:', e.message);
     console.log('Falling back to local data.');
+    isHydrated = true;
   }
 }
 
-initDbFromSupabase();
-
 module.exports = {
   getDb,
-  saveDb
+  saveDb,
+  initDbFromSupabase,
+  isReady: () => isHydrated
 };

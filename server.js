@@ -6,7 +6,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const { getDb, saveDb } = require('./db');
+const { getDb, saveDb, initDbFromSupabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -150,7 +150,7 @@ app.post('/api/auth/register', async (req, res) => {
     };
 
     db.users.push(newUser);
-    saveDb(db);
+    await saveDb(db);
 
     const token = jwt.sign(
       { id: newUser.id, email: newUser.email, role: newUser.role, name: newUser.name },
@@ -235,7 +235,7 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 
 // --- SHOPPING & ORDER CREATION ---
 
-app.post('/api/orders', authenticateToken, (req, res) => {
+app.post('/api/orders', authenticateToken, async (req, res) => {
   try {
     const {
       orderType, // 'sale' or 'rental'
@@ -369,7 +369,7 @@ app.post('/api/orders', authenticateToken, (req, res) => {
     };
     db.shipments.unshift(newShipment);
 
-    saveDb(db);
+    await saveDb(db);
 
     res.status(201).json({
       message: 'Order created successfully!',
@@ -394,7 +394,7 @@ app.get('/api/orders/my-orders', authenticateToken, (req, res) => {
   });
 });
 
-app.post('/api/rentals/extend', authenticateToken, (req, res) => {
+app.post('/api/rentals/extend', authenticateToken, async (req, res) => {
   const { rentalId, additionalDays } = req.body;
   const db = getDb();
   const rental = db.rentals.find(r => r.id === rentalId && r.customerId === req.user.id);
@@ -408,11 +408,11 @@ app.post('/api/rentals/extend', authenticateToken, (req, res) => {
   rental.endDate = currentEnd.toISOString().split('T')[0];
   rental.notes += ` | Extended by customer for ${days} days on ${new Date().toISOString().split('T')[0]}`;
 
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Rental extended successfully', newEndDate: rental.endDate, rental });
 });
 
-app.post('/api/rentals/request-pickup', authenticateToken, (req, res) => {
+app.post('/api/rentals/request-pickup', authenticateToken, async (req, res) => {
   const { rentalId, pickupDate, notes } = req.body;
   const db = getDb();
   const rental = db.rentals.find(r => r.id === rentalId && r.customerId === req.user.id);
@@ -434,7 +434,7 @@ app.post('/api/rentals/request-pickup', authenticateToken, (req, res) => {
     notes: notes || 'Customer requested end of jobsite rental.'
   });
 
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Pickup request received. Dispatch team notified.', rental });
 });
 
@@ -479,18 +479,18 @@ app.get('/api/admin/sales', authenticateToken, requireAdmin, (req, res) => {
   res.json(db.orders.map(sanitizeRecord));
 });
 
-app.put('/api/admin/sales/:id/status', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/sales/:id/status', authenticateToken, requireAdmin, async (req, res) => {
   const { status } = req.body;
   const db = getDb();
   const order = db.orders.find(o => o.id === req.params.id);
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.status = status;
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Order status updated', order });
 });
 
-app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, async (req, res) => {
   const { paymentStatus, paymentMethod } = req.body;
   const db = getDb();
   const order = db.orders.find(o => o.id === req.params.id);
@@ -498,11 +498,11 @@ app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, (req, r
 
   order.paymentStatus = paymentStatus;
   order.paymentMethod = paymentMethod;
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Payment status updated', order });
 });
 
-app.get('/api/admin/rentals', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/rentals', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const today = new Date().toISOString().split('T')[0];
   
@@ -515,12 +515,12 @@ app.get('/api/admin/rentals', authenticateToken, requireAdmin, (req, res) => {
       updated = true;
     }
   });
-  if (updated) saveDb(db);
+  if (updated) await saveDb(db);
 
   res.json(db.rentals.map(sanitizeRecord));
 });
 
-app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const rental = db.rentals.find(r => r.id === req.params.id);
   if (!rental) return res.status(404).json({ error: 'Rental not found' });
@@ -540,7 +540,7 @@ app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, (req,
     }
   });
 
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Rental checked in successfully. Inventory returned to warehouse stock.', rental: sanitizeRecord(rental) });
 });
 
@@ -612,7 +612,7 @@ app.post('/api/admin/dispatch/optimize', authenticateToken, requireAdmin, (req, 
   });
 });
 
-app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req, res) => {
   const { driverName, status, dispatchDate, notes } = req.body;
   const db = getDb();
   const shipment = db.shipments.find(s => s.id === req.params.id);
@@ -623,7 +623,7 @@ app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, (req, res) 
   if (dispatchDate) shipment.dispatchDate = dispatchDate;
   if (notes) shipment.notes = notes;
 
-  saveDb(db);
+  await saveDb(db);
   res.json({ message: 'Shipment updated', shipment });
 });
 
@@ -635,7 +635,7 @@ app.get('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
   res.json(customers.map(sanitizeRecord));
 });
 
-app.post('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, res) => {
   const { name, email, company, phone } = req.body;
   const db = getDb();
   const newCustomer = {
@@ -648,11 +648,11 @@ app.post('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => 
     phone: phone || ''
   };
   db.users.push(newCustomer);
-  saveDb(db);
+  await saveDb(db);
   res.status(201).json({ success: true, customer: sanitizeRecord(newCustomer) });
 });
 
-app.post('/api/admin/sales', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const newOrder = {
     id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -660,21 +660,21 @@ app.post('/api/admin/sales', authenticateToken, requireAdmin, (req, res) => {
     createdAt: new Date().toISOString()
   };
   db.orders.unshift(newOrder);
-  saveDb(db);
+  await saveDb(db);
   res.status(201).json({ success: true, order: sanitizeRecord(newOrder) });
 });
 
-app.put('/api/admin/rentals/:id/extend', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/rentals/:id/extend', authenticateToken, requireAdmin, async (req, res) => {
   const { endDate } = req.body;
   const db = getDb();
   const rental = db.rentals.find(r => r.id === req.params.id);
   if (!rental) return res.status(404).json({ error: 'Rental not found' });
   rental.endDate = endDate;
-  saveDb(db);
+  await saveDb(db);
   res.json({ success: true, rental: sanitizeRecord(rental) });
 });
 
-app.post('/api/admin/shipments/pickup', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/shipments/pickup', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const newShipment = {
     id: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -683,7 +683,7 @@ app.post('/api/admin/shipments/pickup', authenticateToken, requireAdmin, (req, r
     status: 'scheduled'
   };
   db.shipments.unshift(newShipment);
-  saveDb(db);
+  await saveDb(db);
   res.status(201).json({ success: true, shipment: sanitizeRecord(newShipment) });
 });
 
@@ -692,7 +692,7 @@ app.get('/api/admin/invoices', authenticateToken, requireAdmin, (req, res) => {
   res.json((db.invoices || []).map(sanitizeRecord));
 });
 
-app.post('/api/admin/invoices', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/invoices', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   if (!db.invoices) db.invoices = [];
   const newInvoice = {
@@ -701,7 +701,7 @@ app.post('/api/admin/invoices', authenticateToken, requireAdmin, (req, res) => {
     createdAt: new Date().toISOString().split('T')[0]
   };
   db.invoices.unshift(newInvoice);
-  saveDb(db);
+  await saveDb(db);
   res.status(201).json({ success: true, invoice: sanitizeRecord(newInvoice) });
 });
 
@@ -712,7 +712,7 @@ app.get('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
   res.json(db.products.map(sanitizeRecord));
 });
 
-app.post('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const newProduct = {
     id: req.body.id || `prod-${Date.now()}`,
@@ -729,11 +729,11 @@ app.post('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
     suspended: req.body.suspended || false
   };
   db.products.push(newProduct);
-  saveDb(db);
+  await saveDb(db);
   res.status(201).json({ success: true, product: sanitizeRecord(newProduct) });
 });
 
-app.put('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const index = db.products.findIndex(p => p.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Product not found' });
@@ -749,17 +749,17 @@ app.put('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res) =
   };
 
   db.products[index] = updatedProduct;
-  saveDb(db);
+  await saveDb(db);
   res.json({ success: true, product: sanitizeRecord(updatedProduct) });
 });
 
-app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const index = db.products.findIndex(p => p.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Product not found' });
 
   db.products.splice(index, 1);
-  saveDb(db);
+  await saveDb(db);
   res.json({ success: true, message: 'Product deleted' });
 });
 
@@ -773,6 +773,9 @@ app.post('/api/admin/products/upload', authenticateToken, requireAdmin, upload.s
   res.json({ success: true, imageUrl });
 });
 
-app.listen(PORT, () => {
-  console.log(`Secure-A-Fence server running on http://localhost:${PORT}`);
+// Start server after database hydration
+initDbFromSupabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Secure-A-Fence server running on http://localhost:${PORT}`);
+  });
 });
