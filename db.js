@@ -88,7 +88,24 @@ async function syncToSupabase(db) {
     const syncTasks = [];
 
     if (db.users?.length > 0) syncTasks.push(supabase.from('users').upsert(db.users));
-    if (db.products?.length > 0) syncTasks.push(supabase.from('products').upsert(db.products));
+
+    if (db.products?.length > 0) {
+      // Safely attempt upsert, ignoring 'suspended' if column missing
+      syncTasks.push(
+        supabase.from('products').upsert(db.products).then(({ error }) => {
+          if (error && error.code === 'PGRST204') {
+            console.warn('Suspended column missing in Supabase. Upserting without suspended field...');
+            const stripped = db.products.map(p => {
+              const copy = { ...p };
+              delete copy.suspended;
+              return copy;
+            });
+            return supabase.from('products').upsert(stripped);
+          }
+        })
+      );
+    }
+
     if (db.orders?.length > 0) syncTasks.push(supabase.from('orders').upsert(db.orders));
     if (db.rentals?.length > 0) syncTasks.push(supabase.from('rentals').upsert(db.rentals));
     if (db.shipments?.length > 0) syncTasks.push(supabase.from('shipments').upsert(db.shipments));

@@ -92,3 +92,6 @@ create table if not exists public.invoices (
 -- 7. Add missing columns to existing orders table (if previously created)
 alter table public.orders add column if not exists "paymentStatus" text not null default 'Unpaid';
 alter table public.orders add column if not exists "paymentMethod" text not null default 'None';
+
+-- 8. Add suspended column to products table
+alter table public.products add column if not exists suspended boolean not null default false;

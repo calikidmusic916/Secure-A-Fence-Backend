@@ -16,12 +16,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configure Multer for local storage (Temporary/Simple)
+// Configure Multer for storage
+// Note: We use /tmp on Render because the root filesystem is read-only
+const isRender = process.env.RENDER === 'true';
+const uploadDir = isRender ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadPath = path.join(__dirname, 'public', 'uploads');
-    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
-    cb(null, uploadPath);
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -29,6 +32,11 @@ const storage = multer.diskStorage({
   }
 });
 const upload = multer({ storage: storage });
+
+// Serve uploads from /tmp if on Render
+if (isRender) {
+  app.use('/uploads', express.static('/tmp/uploads'));
+}
 
 // Middleware to verify JWT Token
 function authenticateToken(req, res, next) {
@@ -734,23 +742,28 @@ app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res
 });
 
 app.put('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
-  const db = getDb();
-  const index = db.products.findIndex(p => p.id === req.params.id);
-  if (index === -1) return res.status(404).json({ error: 'Product not found' });
+  try {
+    const db = getDb();
+    const index = db.products.findIndex(p => p.id === req.params.id);
+    if (index === -1) return res.status(404).json({ error: 'Product not found' });
 
-  const updatedProduct = {
-    ...db.products[index],
-    ...req.body,
-    // Ensure numeric types
-    salePrice: req.body.salePrice !== undefined ? parseFloat(req.body.salePrice) : db.products[index].salePrice,
-    rentalPriceMonthly: req.body.rentalPriceMonthly !== undefined ? parseFloat(req.body.rentalPriceMonthly) : db.products[index].rentalPriceMonthly,
-    inStock: req.body.inStock !== undefined ? parseInt(req.body.inStock) : db.products[index].inStock,
-    rentedCount: req.body.rentedCount !== undefined ? parseInt(req.body.rentedCount) : db.products[index].rentedCount
-  };
+    const updatedProduct = {
+      ...db.products[index],
+      ...req.body,
+      // Ensure numeric types
+      salePrice: req.body.salePrice !== undefined ? parseFloat(req.body.salePrice) : db.products[index].salePrice,
+      rentalPriceMonthly: req.body.rentalPriceMonthly !== undefined ? parseFloat(req.body.rentalPriceMonthly) : db.products[index].rentalPriceMonthly,
+      inStock: req.body.inStock !== undefined ? parseInt(req.body.inStock) : db.products[index].inStock,
+      rentedCount: req.body.rentedCount !== undefined ? parseInt(req.body.rentedCount) : db.products[index].rentedCount
+    };
 
-  db.products[index] = updatedProduct;
-  await saveDb(db);
-  res.json({ success: true, product: sanitizeRecord(updatedProduct) });
+    db.products[index] = updatedProduct;
+    await saveDb(db);
+    res.json({ success: true, product: sanitizeRecord(updatedProduct) });
+  } catch (err) {
+    console.error('Error updating product:', err);
+    res.status(500).json({ error: 'Failed to update product in database' });
+  }
 });
 
 app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, res) => {
