@@ -165,21 +165,36 @@ async function syncToSupabase(db) {
 
 // Hydrate DB from Supabase on startup
 async function initDbFromSupabase() {
-  if (!supabase) return;
+  if (!supabase) {
+    console.log('No Supabase connection. Using local data.');
+    return;
+  }
+  console.log('Connecting to Supabase...');
   try {
-    const { data: users } = await supabase.from('users').select('*');
-    const { data: products } = await supabase.from('products').select('*');
+    const { data: users, error: uErr } = await supabase.from('users').select('*');
+    if (uErr) throw uErr;
+    const { data: products, error: pErr } = await supabase.from('products').select('*');
+    if (pErr) throw pErr;
     const { data: orders } = await supabase.from('orders').select('*');
     const { data: rentals } = await supabase.from('rentals').select('*');
     const { data: shipments } = await supabase.from('shipments').select('*');
 
-    if (users && users.length > 0) cachedDb.users = users;
-    if (products && products.length > 0) cachedDb.products = products;
+    if (users && users.length > 0) {
+      cachedDb.users = users;
+      console.log(`Loaded ${users.length} users from Supabase.`);
+    }
+    if (products && products.length > 0) {
+      cachedDb.products = products;
+      console.log(`Loaded ${products.length} products from Supabase.`);
+    }
     if (orders && orders.length > 0) cachedDb.orders = orders;
     if (rentals && rentals.length > 0) cachedDb.rentals = rentals;
     if (shipments && shipments.length > 0) cachedDb.shipments = shipments;
+
+    console.log('Database hydrated successfully from Supabase.');
   } catch (e) {
-    console.log('Starting with cached local data.');
+    console.error('Supabase hydration error:', e.message);
+    console.log('Falling back to local data.');
   }
 }
 
