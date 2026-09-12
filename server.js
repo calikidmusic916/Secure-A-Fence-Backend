@@ -59,7 +59,9 @@ function sanitizeRecord(obj) {
 // Get Product Catalog
 app.get('/api/products', (req, res) => {
   const db = getDb();
-  res.json(db.products);
+  // Filter out suspended products for the public catalog
+  const activeProducts = db.products.filter(p => !p.suspended);
+  res.json(activeProducts.map(sanitizeRecord));
 });
 
 // Calculate Fence Package
@@ -686,6 +688,64 @@ app.post('/api/admin/invoices', authenticateToken, requireAdmin, (req, res) => {
   db.invoices.unshift(newInvoice);
   saveDb(db);
   res.status(201).json({ success: true, invoice: sanitizeRecord(newInvoice) });
+});
+
+// --- ADMIN PRODUCT MANAGEMENT ---
+
+app.get('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDb();
+  res.json(db.products.map(sanitizeRecord));
+});
+
+app.post('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDb();
+  const newProduct = {
+    id: req.body.id || `prod-${Date.now()}`,
+    name: req.body.name,
+    category: req.body.category || 'sales',
+    type: req.body.type || 'panel',
+    salePrice: parseFloat(req.body.salePrice) || 0,
+    rentalPriceMonthly: parseFloat(req.body.rentalPriceMonthly) || 0,
+    inStock: parseInt(req.body.inStock) || 0,
+    rentedCount: parseInt(req.body.rentedCount) || 0,
+    description: req.body.description || '',
+    image: req.body.image || '/assets/panel.png',
+    specs: req.body.specs || '',
+    suspended: req.body.suspended || false
+  };
+  db.products.push(newProduct);
+  saveDb(db);
+  res.status(201).json({ success: true, product: sanitizeRecord(newProduct) });
+});
+
+app.put('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDb();
+  const index = db.products.findIndex(p => p.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Product not found' });
+
+  const updatedProduct = {
+    ...db.products[index],
+    ...req.body,
+    // Ensure numeric types
+    salePrice: req.body.salePrice !== undefined ? parseFloat(req.body.salePrice) : db.products[index].salePrice,
+    rentalPriceMonthly: req.body.rentalPriceMonthly !== undefined ? parseFloat(req.body.rentalPriceMonthly) : db.products[index].rentalPriceMonthly,
+    inStock: req.body.inStock !== undefined ? parseInt(req.body.inStock) : db.products[index].inStock,
+    rentedCount: req.body.rentedCount !== undefined ? parseInt(req.body.rentedCount) : db.products[index].rentedCount
+  };
+
+  db.products[index] = updatedProduct;
+  saveDb(db);
+  res.json({ success: true, product: sanitizeRecord(updatedProduct) });
+});
+
+app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDb();
+  const index = db.products.findIndex(p => p.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Product not found' });
+
+  db.products.splice(index, 1);
+  saveDb(db);
+  res.json({ success: true, message: 'Product deleted' });
 });
 
 app.listen(PORT, () => {
