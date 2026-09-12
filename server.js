@@ -6,7 +6,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const { getDb, saveDb, initDbFromSupabase } = require('./db');
+const { getDb, saveDb, initDbFromSupabase, supabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,33 +16,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configure Multer for storage
-// Note: We use /tmp on Render because the root filesystem is read-only
-const isRender = process.env.RENDER === 'true';
-const uploadDir = isRender ? '/tmp/uploads' : path.join(__dirname, 'public', 'uploads');
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    try {
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (e) {
-      // Fallback to /tmp if read-only
-      const fallbackDir = '/tmp/uploads';
-      if (!fs.existsSync(fallbackDir)) fs.mkdirSync(fallbackDir, { recursive: true });
-      cb(null, fallbackDir);
-    }
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'product-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configure Multer for in-memory storage (to upload to Supabase directly)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-
-// Serve uploads
-app.use('/uploads', express.static(uploadDir));
-app.use('/uploads', express.static('/tmp/uploads'));
 
 // Middleware to verify JWT Token
 function authenticateToken(req, res, next) {
@@ -782,14 +758,42 @@ app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (re
   res.json({ success: true, message: 'Product deleted' });
 });
 
-app.post('/api/admin/products/upload', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
+app.post('/api/admin/products/upload', authenticateToken, requireAdmin, upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file provided' });
   }
 
-  // Return the public URL for the uploaded image
-  const imageUrl = `/uploads/${req.file.filename}`;
-  res.json({ success: true, imageUrl });
+  if (!supabase) {
+    return res.status(500).json({ error: 'Supabase client not initialized' });
+  }
+
+  try {
+    const fileExt = path.extname(req.file.originalname);
+    const fileName = `product-${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase storage upload error:', error);
+      return res.status(500).json({ error: 'Failed to upload image to Supabase Storage' });
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+
+    const imageUrl = publicUrlData.publicUrl;
+    res.json({ success: true, imageUrl });
+  } catch (err) {
+    console.error('Unexpected upload error:', err);
+    res.status(500).json({ error: 'Unexpected error during upload' });
+  }
 });
 
 // Start server after database hydration

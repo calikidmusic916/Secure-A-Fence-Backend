@@ -164,5 +164,6 @@ module.exports = {
   getDb,
   saveDb,
   initDbFromSupabase,
-  isReady: () => isHydrated
+  isReady: () => isHydrated,
+  supabase
 };
