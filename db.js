@@ -1,3 +1,10 @@
+// Polyfill WebSocket for Node.js environment (required for Supabase Realtime on Render)
+try {
+  global.WebSocket = require('ws');
+} catch (e) {
+  // ws might not be installed yet during the very first build step
+}
+
 let createClient;
 try {
   createClient = require('@supabase/supabase-js').createClient;
@@ -11,17 +18,12 @@ const path = require('path');
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const ws = require('ws');
 const supabase = (createClient && SUPABASE_URL && SUPABASE_SERVICE_KEY)
-  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-      realtime: {
-        websocket: ws
-      }
-    })
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
   : null;
 
 if (!supabase) {
-  console.warn('⚠️ Supabase credentials missing. Running in local-only mode.');
+  console.warn('⚠️ Supabase credentials missing or client failed to initialize. Running in local-only mode.');
 }
 
 const LOCAL_DB_PATH = path.join(__dirname, 'data', 'db.json');
