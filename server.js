@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
 const { getDb, saveDb } = require('./db');
 
 const app = express();
@@ -14,6 +15,20 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secure-a-fence-secret-key-2026';
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Configure Multer for local storage (Temporary/Simple)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'product-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 // Middleware to verify JWT Token
 function authenticateToken(req, res, next) {
@@ -746,6 +761,16 @@ app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, (req, res
   db.products.splice(index, 1);
   saveDb(db);
   res.json({ success: true, message: 'Product deleted' });
+});
+
+app.post('/api/admin/products/upload', authenticateToken, requireAdmin, upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+
+  // Return the public URL for the uploaded image
+  const imageUrl = `/uploads/${req.file.filename}`;
+  res.json({ success: true, imageUrl });
 });
 
 app.listen(PORT, () => {
