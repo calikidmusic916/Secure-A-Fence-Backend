@@ -8,10 +8,16 @@ try {
 const fs = require('fs');
 const path = require('path');
 
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-const supabase = createClient ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
+const supabase = (createClient && SUPABASE_URL && SUPABASE_SERVICE_KEY)
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+  : null;
+
+if (!supabase) {
+  console.warn('⚠️ Supabase credentials missing. Running in local-only mode.');
+}
 
 const LOCAL_DB_PATH = path.join(__dirname, 'data', 'db.json');
 
