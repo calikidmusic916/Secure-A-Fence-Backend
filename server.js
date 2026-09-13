@@ -234,64 +234,90 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       jobsiteContact,
       startDate,
       endDate,
-      notes
+      notes,
+      isCustomQuote,
+      quoteData
     } = req.body;
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: 'Order must contain at least one item' });
-    }
 
     const db = getDb();
     const user = db.users.find(u => u.id === req.user.id);
 
-    for (const item of items) {
-      if (!item.productId) {
-        return res.status(400).json({ error: 'Each item must have a productId' });
-      }
-      const prod = db.products.find(p => p.id === item.productId);
-      if (!prod) {
-        return res.status(400).json({ error: `Product not found: ${item.productId}` });
-      }
-      const qty = parseInt(item.quantity) || 1;
-      if (qty <= 0) {
-        return res.status(400).json({ error: `Quantity for product ${prod.name} must be greater than 0` });
-      }
-      if (prod.inStock < qty) {
-        return res.status(400).json({ error: `Insufficient stock for ${prod.name}. Requested: ${qty}, Available: ${prod.inStock}` });
-      }
-    }
-
     let subtotal = 0;
     const processedItems = [];
+    let deliveryFee = 0;
+    let tax = 0;
+    let totalAmount = 0;
 
-    for (const item of items) {
-      const prod = db.products.find(p => p.id === item.productId);
-      const qty = parseInt(item.quantity) || 1;
-      const unitPrice = orderType === 'rental' ? prod.rentalPriceMonthly : prod.salePrice;
-      const total = unitPrice * qty;
-      subtotal += total;
+    if (isCustomQuote && quoteData) {
+      subtotal = quoteData.totalMonthly * quoteData.months;
+      deliveryFee = quoteData.setupTotal; // We use delivery fee to represent the one-time setup
+      tax = 0; // Simplified for custom quotes
+      totalAmount = quoteData.finalTotal;
 
       processedItems.push({
-        productId: prod.id,
-        name: prod.name,
-        unitPrice,
-        quantity: qty,
-        total
+        productId: 'custom-rental',
+        name: `Custom Fence Rental (${quoteData.linearFeet} LF, ${quoteData.months} Months)`,
+        unitPrice: quoteData.totalMonthly,
+        quantity: 1,
+        total: subtotal
       });
-
-      // Adjust stock / rental inventory count
-      if (orderType === 'sale') {
-        prod.inStock -= qty;
-      } else if (orderType === 'rental') {
-        prod.inStock -= qty;
-        prod.rentedCount = (prod.rentedCount || 0) + qty;
+      if (quoteData.privacy) {
+        processedItems.push({
+          productId: 'custom-privacy',
+          name: 'Privacy Screen Addition',
+          unitPrice: 0, quantity: 1, total: 0
+        });
       }
-    }
+      if (quoteData.gates > 0) {
+        processedItems.push({
+          productId: 'custom-gate',
+          name: `Pedestrian Gates (${quoteData.gates})`,
+          unitPrice: 0, quantity: quoteData.gates, total: 0
+        });
+      }
+    } else {
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Order must contain at least one item' });
+      }
 
-    const distance = parseFloat(req.body.deliveryDistance) || 0;
-    const deliveryFee = distance <= 20 ? 0 : (distance - 20) * 2 * 1.00;
-    const tax = Math.round(subtotal * 0.08 * 100) / 100;
-    const totalAmount = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+      for (const item of items) {
+        if (!item.productId) return res.status(400).json({ error: 'Each item must have a productId' });
+        const prod = db.products.find(p => p.id === item.productId);
+        if (!prod) return res.status(400).json({ error: `Product not found: ${item.productId}` });
+        const qty = parseInt(item.quantity) || 1;
+        if (qty <= 0) return res.status(400).json({ error: `Quantity for product ${prod.name} must be > 0` });
+        if (prod.inStock < qty) return res.status(400).json({ error: `Insufficient stock for ${prod.name}` });
+      }
+
+      for (const item of items) {
+        const prod = db.products.find(p => p.id === item.productId);
+        const qty = parseInt(item.quantity) || 1;
+        const unitPrice = orderType === 'rental' ? prod.rentalPriceMonthly : prod.salePrice;
+        const total = unitPrice * qty;
+        subtotal += total;
+
+        processedItems.push({
+          productId: prod.id,
+          name: prod.name,
+          unitPrice,
+          quantity: qty,
+          total
+        });
+
+        // Adjust stock / rental inventory count
+        if (orderType === 'sale') {
+          prod.inStock -= qty;
+        } else if (orderType === 'rental') {
+          prod.inStock -= qty;
+          prod.rentedCount = (prod.rentedCount || 0) + qty;
+        }
+      }
+
+      const distance = parseFloat(req.body.deliveryDistance) || 0;
+      deliveryFee = distance <= 20 ? 0 : (distance - 20) * 2 * 1.00;
+      tax = Math.round(subtotal * 0.08 * 100) / 100;
+      totalAmount = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+    }
 
     const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -302,7 +328,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       customerCompany: user.company || 'Direct Buyer',
       customerEmail: user.email,
       customerPhone: user.phone || 'N/A',
-      orderType,
+      orderType: isCustomQuote ? 'rental' : orderType,
       items: processedItems,
       subtotal,
       deliveryFee,
@@ -319,7 +345,16 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
     // If order type is rental, create active rental ledger record
     let rentalRecord = null;
-    if (orderType === 'rental') {
+    if (newOrder.orderType === 'rental') {
+      let rntEndDate = endDate;
+      if (isCustomQuote && !endDate) {
+        const d = new Date(startDate || Date.now());
+        d.setMonth(d.getMonth() + quoteData.months);
+        rntEndDate = d.toISOString().split('T')[0];
+      } else if (!endDate) {
+        rntEndDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+      }
+
       rentalRecord = {
         id: `RNT-${Math.floor(1000 + Math.random() * 9000)}`,
         orderId: newOrder.id,
@@ -331,8 +366,8 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
         jobsiteAddress: deliveryAddress || 'Default Jobsite Location',
         jobsiteContact: jobsiteContact || user.name,
         startDate: startDate || new Date().toISOString().split('T')[0],
-        endDate: endDate || new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        monthlyRateTotal: subtotal,
+        endDate: rntEndDate,
+        monthlyRateTotal: isCustomQuote ? quoteData.totalMonthly : subtotal,
         status: 'Active',
         items: processedItems.map(i => ({
           productId: i.productId,
@@ -350,7 +385,7 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
     const newShipment = {
       id: `SHIP-${Math.floor(1000 + Math.random() * 9000)}`,
       orderId: newOrder.id,
-      type: orderType === 'rental' ? 'Rental Deployment' : 'Outbound Sale Delivery',
+      type: newOrder.orderType === 'rental' ? 'Rental Deployment' : 'Outbound Sale Delivery',
       driverName: 'Unassigned Dispatcher',
       dispatchDate: startDate || new Date().toISOString().split('T')[0],
       status: 'Pending Dispatch',
