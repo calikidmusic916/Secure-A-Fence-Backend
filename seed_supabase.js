@@ -31,6 +31,9 @@ async function seed() {
       console.log(`Uploading ${data[table].length} records to "${table}"...`);
       let payload = data[table];
       if (table === 'products') {
+        // Clear all products in Supabase first to ensure clean pricing slate
+        await supabase.from('products').delete().neq('id', 'non-existent-id-xyz');
+
         payload = data.products.map(p => {
           const copy = { ...p };
           delete copy.isRental;
@@ -39,17 +42,6 @@ async function seed() {
           delete copy.suspended;
           return copy;
         });
-
-        // Delete any orphaned products from Supabase that are no longer in the active catalog list
-        const activeIds = data.products.map(p => p.id);
-        const { data: existingSupabaseProducts } = await supabase.from('products').select('id');
-        if (existingSupabaseProducts) {
-          const orphanedIds = existingSupabaseProducts.map(p => p.id).filter(id => !activeIds.includes(id));
-          for (const orphanId of orphanedIds) {
-            await supabase.from('products').delete().eq('id', orphanId);
-            console.log(`  Purged orphaned product "${orphanId}" from Supabase.`);
-          }
-        }
       }
       const { error } = await supabase.from(table).upsert(payload);
       if (error) {
