@@ -994,6 +994,55 @@ app.put('/api/admin/rentals/:id/extend', authenticateToken, requireAdmin, async 
   res.json({ success: true, rental: sanitizeRecord(rental) });
 });
 
+app.post('/api/admin/rentals/:id/invoice', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const rental = db.rentals.find(r => r.id === req.params.id);
+  if (!rental) return res.status(404).json({ error: 'Active rental agreement not found' });
+
+  if (!db.invoices) db.invoices = [];
+  const existingInvoices = db.invoices.filter(inv => inv.orderId === rental.orderId || inv.customerName === rental.customerName);
+
+  const monthNum = existingInvoices.length + 1;
+
+  // Calculate next billing date by adding monthNum - 1 months to startDate
+  let billingDate = rental.startDate || new Date().toISOString().split('T')[0];
+  try {
+    const startD = new Date(billingDate);
+    startD.setMonth(startD.getMonth() + (monthNum - 1));
+    billingDate = startD.toISOString().split('T')[0];
+  } catch (e) {
+    billingDate = new Date().toISOString().split('T')[0];
+  }
+
+  const tax = rental.isTaxable === false ? 0 : Math.round((rental.monthlyRateTotal || 0) * 0.08 * 100) / 100;
+  const deliveryFee = monthNum === 1 ? (rental.deliveryFee || 0) : 0;
+  const totalAmount = (rental.monthlyRateTotal || 0) + deliveryFee + tax;
+
+  const newInvoice = {
+    id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+    orderId: rental.orderId || `RNT-${rental.id}`,
+    customerId: rental.customerId,
+    customerName: rental.customerName,
+    customerCompany: rental.customerCompany || 'Direct Client',
+    amount: totalAmount,
+    subtotal: rental.monthlyRateTotal || 0,
+    deliveryFee,
+    tax,
+    status: 'Unpaid',
+    createdAt: billingDate,
+    description: `Month ${monthNum} Recurring Rental Billing (${billingDate})`
+  };
+
+  db.invoices.unshift(newInvoice);
+  await saveDb(db);
+
+  res.status(201).json({
+    success: true,
+    message: `Month ${monthNum} invoice generated for ${rental.customerName}`,
+    invoice: sanitizeRecord(newInvoice)
+  });
+});
+
 app.post('/api/admin/shipments/pickup', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const newShipment = {
