@@ -61,7 +61,7 @@ function getLocalDb() {
   return initialData;
 }
 
-// Initial load from local file (if exists)
+// Initial load from local file
 cachedDb = getLocalDb();
 
 function getDb() {
@@ -85,42 +85,56 @@ async function saveDb(data) {
 async function syncToSupabase(db) {
   if (!supabase) return;
   try {
-    const syncTasks = [];
+    if (db.users?.length > 0) {
+      const { error } = await supabase.from('users').upsert(db.users);
+      if (error) console.error('Supabase users sync error:', error.message);
+    }
 
-    if (db.users?.length > 0) syncTasks.push(supabase.from('users').upsert(db.users));
-
-    if (db.products?.length > 0) {
-      const strippedProducts = db.products.map(p => {
+    if (db.products) {
+      const dbProductsPayload = db.products.map(p => {
         const copy = { ...p };
-        delete copy.suspended;
-        delete copy.unit;
+        if (!copy.unit) copy.unit = 'unit';
+        if (copy.suspended === undefined || copy.suspended === null) copy.suspended = false;
+        // Remove properties not present in Supabase postgres table schema
         delete copy.isRental;
         delete copy.isPurchase;
         return copy;
       });
 
-      syncTasks.push(supabase.from('products').upsert(strippedProducts));
+      if (dbProductsPayload.length > 0) {
+        const { error: prodErr } = await supabase.from('products').upsert(dbProductsPayload);
+        if (prodErr) console.error('Supabase products upsert error:', prodErr.message);
+      }
 
-      // Ensure deleted products are explicitly purged from Supabase table
+      // Purge orphaned/deleted products from Supabase
       const activeIds = db.products.map(p => p.id);
-      syncTasks.push(
-        supabase.from('products').select('id').then(async ({ data: existing }) => {
-          if (existing) {
-            const orphaned = existing.map(e => e.id).filter(id => !activeIds.includes(id));
-            for (const orphanId of orphaned) {
-              await supabase.from('products').delete().eq('id', orphanId);
-            }
-          }
-        })
-      );
+      const { data: existingSupabaseProducts } = await supabase.from('products').select('id');
+      if (existingSupabaseProducts) {
+        const orphaned = existingSupabaseProducts.map(e => e.id).filter(id => !activeIds.includes(id));
+        for (const orphanId of orphaned) {
+          await supabase.from('products').delete().eq('id', orphanId);
+          console.log(`Purged deleted product ${orphanId} permanently from Supabase.`);
+        }
+      }
     }
 
-    if (db.orders?.length > 0) syncTasks.push(supabase.from('orders').upsert(db.orders));
-    if (db.rentals?.length > 0) syncTasks.push(supabase.from('rentals').upsert(db.rentals));
-    if (db.shipments?.length > 0) syncTasks.push(supabase.from('shipments').upsert(db.shipments));
-    if (db.invoices?.length > 0) syncTasks.push(supabase.from('invoices').upsert(db.invoices));
+    if (db.orders?.length > 0) {
+      const { error } = await supabase.from('orders').upsert(db.orders);
+      if (error) console.error('Supabase orders sync error:', error.message);
+    }
+    if (db.rentals?.length > 0) {
+      const { error } = await supabase.from('rentals').upsert(db.rentals);
+      if (error) console.error('Supabase rentals sync error:', error.message);
+    }
+    if (db.shipments?.length > 0) {
+      const { error } = await supabase.from('shipments').upsert(db.shipments);
+      if (error) console.error('Supabase shipments sync error:', error.message);
+    }
+    if (db.invoices?.length > 0) {
+      const { error } = await supabase.from('invoices').upsert(db.invoices);
+      if (error) console.error('Supabase invoices sync error:', error.message);
+    }
 
-    await Promise.all(syncTasks);
     console.log('Successfully synced data to Supabase.');
   } catch (err) {
     console.error('Supabase sync error:', err.message);
@@ -154,13 +168,19 @@ async function initDbFromSupabase() {
     ]);
 
     if (users) cachedDb.users = users;
-    if (products) cachedDb.products = products;
+    if (products) {
+      cachedDb.products = products.map(p => ({
+        ...p,
+        isRental: p.isRental !== undefined ? Boolean(p.isRental) : true,
+        isPurchase: p.isPurchase !== undefined ? Boolean(p.isPurchase) : true
+      }));
+    }
     if (orders) cachedDb.orders = orders;
     if (rentals) cachedDb.rentals = rentals;
     if (shipments) cachedDb.shipments = shipments;
     if (invoices) cachedDb.invoices = invoices;
 
-    console.log(`Persistence check: Loaded ${cachedDb.orders?.length || 0} orders and ${cachedDb.users?.length || 0} users from Supabase.`);
+    console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users from Supabase.`);
     isHydrated = true;
   } catch (e) {
     console.error('Supabase hydration error:', e.message);

@@ -93,66 +93,6 @@
   ],
   "products": [
     {
-      "id": "prod-panel-6x12",
-      "name": "Refurbished Temporary Fence Panel (6' x 12')",
-      "category": "sales",
-      "type": "panel",
-      "salePrice": 65,
-      "rentalPriceMonthly": 15,
-      "inStock": 300,
-      "rentedCount": 90,
-      "description": "Heavy-duty 11-gauge galvanized chain-link mesh with sturdy welded tubular steel frame (6ft x 12ft). Fully refurbished and cross-braced.",
-      "image": "/assets/panel.svg",
-      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
-      "suspended": false,
-      "isRental": true
-    },
-    {
-      "id": "prod-panel-6x10",
-      "name": "Refurbished Temporary Fence Panel (6' x 10')",
-      "category": "sales",
-      "type": "panel",
-      "salePrice": 50,
-      "rentalPriceMonthly": 12,
-      "inStock": 250,
-      "rentedCount": 60,
-      "description": "Standard 6ft x 10ft refurbished temporary chain-link fence panel. Ideal for tighter perimeters and flexible jobsite layouts.",
-      "image": "/assets/panel.svg",
-      "specs": "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
-      "suspended": false,
-      "isRental": true
-    },
-    {
-      "id": "prod-stand-sale",
-      "name": "Flat Stand (Standard Tubular Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 10,
-      "rentalPriceMonthly": 3,
-      "inStock": 600,
-      "rentedCount": 130,
-      "description": "Lightweight and easy to handle rectangular tubular steel base with dual upright sleeves. Designed for standard hard asphalt and concrete perimeters.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Flat Stand | Dimensions: 36\" x 16\" | Weight: 24 lbs | Finish: Hot-Dip Galvanized",
-      "suspended": false,
-      "isRental": true
-    },
-    {
-      "id": "prod-stand-braced",
-      "name": "Braced Stand (Windy Condition Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 15,
-      "rentalPriceMonthly": 4.5,
-      "inStock": 350,
-      "rentedCount": 85,
-      "description": "Includes angular diagonal steel bracing for high wind resistance and extra lateral support on open job sites.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Braced Stand | Feature: Dual Diagonal Support Struts | Weight: 32 lbs | Finish: Hot-Dip Galvanized",
-      "suspended": false,
-      "isRental": true
-    },
-    {
       "id": "prod-stand-heavyduty",
       "name": "Heavy Duty Stand (Max Strength Base)",
       "category": "sales",
@@ -165,22 +105,9 @@
       "image": "/assets/stand.svg",
       "specs": "Style: Heavy Duty Stand | Feature: Quad Cross-Bar Construction | Weight: 38 lbs | Finish: Hot-Dip Galvanized",
       "suspended": false,
-      "isRental": true
-    },
-    {
-      "id": "prod-stand-cross",
-      "name": "Cross Stand (Soft/Uneven Ground Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 12,
-      "rentalPriceMonthly": 3.5,
-      "inStock": 400,
-      "rentedCount": 95,
-      "description": "4-point wide footprint cross-pipe configuration ideal for dirt, gravel, turf, and soft uneven ground surfaces.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Cross Stand | Feature: 4-Way Surface Spanning Arms | Weight: 26 lbs | Finish: Hot-Dip Galvanized",
-      "suspended": false,
-      "isRental": true
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
     },
     {
       "id": "prod-stand-plate",
@@ -195,7 +122,9 @@
       "image": "/assets/stand.svg",
       "specs": "Style: Plate Stand | Feature: Flush Beveled Steel Plate | Weight: 30 lbs | Finish: Hot-Dip Galvanized",
       "suspended": false,
-      "isRental": true
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
     },
     {
       "id": "prod-stand-wheel",
@@ -210,22 +139,9 @@
       "image": "/assets/stand.svg",
       "specs": "Style: Wheel Stand | Feature: 4 Heavy-Duty Locking Casters | Weight: 34 lbs | Finish: Hot-Dip Galvanized",
       "suspended": false,
-      "isRental": true
-    },
-    {
-      "id": "prod-stand-sandbag",
-      "name": "Sandbag Stand (Weighted Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 20,
-      "rentalPriceMonthly": 6,
-      "inStock": 220,
-      "rentedCount": 60,
-      "description": "Flat tubular steel frame base equipped with dual heavy-gauge canvas sandbags for extra stability against high winds and storms.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Sandbag Stand | Feature: Frame + 2 Pre-filled 50lb Sandbags | Total Weight: 124 lbs | Finish: Galvanized Steel",
-      "suspended": false,
-      "isRental": true
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
     },
     {
       "id": "prod-clip-sale",
@@ -240,7 +156,43 @@
       "image": "/assets/clip.svg",
       "specs": "Material: Forged Steel | Bolt: 1/2\" Galvanized Carriage Bolt included",
       "suspended": false,
-      "isRental": true
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
+    },
+    {
+      "id": "prod-panel-6x12",
+      "name": "Refurbished Temporary Fence Panel (6' x 12')",
+      "category": "sales",
+      "type": "panel",
+      "salePrice": 65,
+      "rentalPriceMonthly": 15,
+      "inStock": 300,
+      "rentedCount": 90,
+      "description": "Heavy-duty 11-gauge galvanized chain-link mesh with sturdy welded tubular steel frame (6ft x 12ft). Fully refurbished and cross-braced.",
+      "image": "/assets/panel.svg",
+      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
+      "suspended": false,
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
+    },
+    {
+      "id": "prod-panel-6x10",
+      "name": "Refurbished Temporary Fence Panel (6' x 10')",
+      "category": "sales",
+      "type": "panel",
+      "salePrice": 50,
+      "rentalPriceMonthly": 12,
+      "inStock": 250,
+      "rentedCount": 60,
+      "description": "Standard 6ft x 10ft refurbished temporary chain-link fence panel. Ideal for tighter perimeters and flexible jobsite layouts.",
+      "image": "/assets/panel.svg",
+      "specs": "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
+      "suspended": false,
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
     },
     {
       "id": "prod-screen-sale",
@@ -255,7 +207,9 @@
       "image": "/assets/privacy_screen.svg",
       "specs": "Length: 50 ft | Height: 5'8\" | Brass Grommets every 24\"",
       "suspended": false,
-      "isRental": true
+      "unit": "unit",
+      "isRental": true,
+      "isPurchase": true
     }
   ],
   "orders": [
@@ -540,66 +494,6 @@
   ],
   "shipments": [
     {
-      "id": "SHIP-3545",
-      "orderId": "ORD-9057",
-      "type": "Outbound Sale Delivery",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-09-12",
-      "status": "Pending Dispatch",
-      "destination": "Sacramento, CA",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-7565",
-      "orderId": "ORD-3600",
-      "type": "Rental Deployment",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-09-12",
-      "status": "Pending Dispatch",
-      "destination": "Sacramento, CA",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-1329",
-      "orderId": "ORD-3250",
-      "type": "Outbound Sale Delivery",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-09-12",
-      "status": "Pending Dispatch",
-      "destination": "Sacramento, CA",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-5263",
-      "orderId": "ORD-9458",
-      "type": "Rental Deployment",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-08-30",
-      "status": "Pending Dispatch",
-      "destination": "456 Rental Jobsite",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-7536",
-      "orderId": "ORD-7717",
-      "type": "Rental Deployment",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-08-29",
-      "status": "Pending Dispatch",
-      "destination": "456 Rental Jobsite",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-3579",
-      "orderId": "ORD-6414",
-      "type": "Rental Deployment",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-08-29",
-      "status": "Pending Dispatch",
-      "destination": "456 Rental Jobsite",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
       "id": "SHIP-1002",
       "orderId": "ORD-8941",
       "type": "Outbound Sale Delivery",
@@ -608,36 +502,6 @@
       "status": "Delivered",
       "destination": "742 Evergreen Terrace, Jobsite Alpha",
       "notes": "Unloaded with forklift on west gate."
-    },
-    {
-      "id": "SHIP-1003",
-      "orderId": "RNT-3021",
-      "type": "Rental Deployment",
-      "driverName": "Sam Jackson (Flatbed #2)",
-      "dispatchDate": "2026-08-01",
-      "status": "Delivered & Erected",
-      "destination": "1024 Commercial Way, Downtown Tower Project",
-      "notes": "Rental panel layout setup completed per site diagram."
-    },
-    {
-      "id": "SHIP-5706",
-      "orderId": "ORD-1276",
-      "type": "Outbound Sale Delivery",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-09-12",
-      "status": "Pending Dispatch",
-      "destination": "Sacramento, CA",
-      "notes": "Awaiting warehouse loadout."
-    },
-    {
-      "id": "SHIP-5907",
-      "orderId": "ORD-2804",
-      "type": "Outbound Sale Delivery",
-      "driverName": "Unassigned Dispatcher",
-      "dispatchDate": "2026-09-12",
-      "status": "Pending Dispatch",
-      "destination": "Sacramento, CA",
-      "notes": "Awaiting warehouse loadout."
     }
   ],
   "invoices": []
