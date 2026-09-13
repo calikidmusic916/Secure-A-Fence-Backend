@@ -69,9 +69,9 @@ app.get('/api/products', (req, res) => {
   res.json(activeProducts.map(sanitizeRecord));
 });
 
-// Calculate Fence Package
+// Calculate Fence Package (6x12 panels, default width 12ft)
 app.post('/api/calculator/estimate', (req, res) => {
-  const { linearFeet, panelWidthFt = 10, includeStands = true, includeClips = true } = req.body;
+  const { linearFeet, panelWidthFt = 12, includeStands = true, includeClips = true } = req.body;
   const feet = parseFloat(linearFeet) || 0;
   if (feet <= 0) {
     return res.status(400).json({ error: 'Linear footage must be greater than 0' });
