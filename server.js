@@ -683,6 +683,28 @@ app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req,
   res.json({ message: 'Shipment updated', shipment });
 });
 
+app.delete('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  if (!db.shipments) db.shipments = [];
+  const index = db.shipments.findIndex(s => s.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Shipment record not found' });
+
+  const deletedId = req.params.id;
+  db.shipments.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('shipments').delete().eq('id', deletedId);
+      console.log(`Deleted shipment ${deletedId} from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting shipment from Supabase:', e.message);
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Shipment record deleted successfully' });
+});
+
 // --- ADMIN CUSTOMERS, INVOICES, SALES & SHIPMENTS ENDPOINTS ---
 
 app.get('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
