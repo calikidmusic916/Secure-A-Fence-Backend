@@ -871,6 +871,42 @@ app.post('/api/admin/invoices', authenticateToken, requireAdmin, async (req, res
   res.status(201).json({ success: true, invoice: sanitizeRecord(newInvoice) });
 });
 
+app.put('/api/admin/invoices/:id/payment', authenticateToken, requireAdmin, async (req, res) => {
+  const { status, paymentMethod } = req.body;
+  const db = getDb();
+  if (!db.invoices) db.invoices = [];
+  const invoice = db.invoices.find(inv => inv.id === req.params.id);
+  if (!invoice) return res.status(404).json({ error: 'Invoice not found' });
+
+  if (status) invoice.status = status;
+  if (paymentMethod) invoice.paymentMethod = paymentMethod;
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Invoice payment updated', invoice: sanitizeRecord(invoice) });
+});
+
+app.delete('/api/admin/invoices/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  if (!db.invoices) db.invoices = [];
+  const index = db.invoices.findIndex(inv => inv.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Invoice not found' });
+
+  const deletedId = req.params.id;
+  db.invoices.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('invoices').delete().eq('id', deletedId);
+      console.log(`Deleted invoice ${deletedId} from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting invoice from Supabase:', e.message);
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Invoice deleted successfully' });
+});
+
 // --- ADMIN PRODUCT MANAGEMENT ---
 
 app.get('/api/admin/products', authenticateToken, requireAdmin, (req, res) => {
