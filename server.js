@@ -213,14 +213,17 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   const db = getDb();
   const user = db.users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
-  res.json({
+  res.json(sanitizeRecord({
     id: user.id,
     name: user.name,
     email: user.email,
     role: user.role,
     company: user.company,
-    phone: user.phone
-  });
+    phone: user.phone,
+    isTaxable: user.isTaxable !== false,
+    businessAddress: user.businessAddress || '',
+    jobsites: user.jobsites || []
+  }));
 });
 
 // --- SHOPPING & ORDER CREATION ---
@@ -318,6 +321,33 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
       const isTaxable = user && user.isTaxable !== undefined ? Boolean(user.isTaxable) : true;
       tax = isTaxable ? Math.round(subtotal * 0.08 * 100) / 100 : 0;
       totalAmount = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
+    }
+
+    // Auto-create or link Jobsite under customer account if ordering rental
+    if (user && deliveryAddress) {
+      if (!user.jobsites) user.jobsites = [];
+      const siteName = req.body.jobsiteName || `Site - ${deliveryAddress.split(',')[0]}`;
+      let existingSite = user.jobsites.find(j =>
+        (j.address && j.address.toLowerCase() === deliveryAddress.toLowerCase()) ||
+        (j.name && j.name.toLowerCase() === siteName.toLowerCase())
+      );
+
+      if (!existingSite) {
+        existingSite = {
+          id: `site-${Date.now()}`,
+          name: siteName,
+          address: deliveryAddress,
+          contactName: jobsiteContact || user.name,
+          contactPhone: user.phone || 'N/A',
+          specialInstructions: req.body.specialInstructions || '',
+          deliveryDistanceMiles: parseFloat(req.body.deliveryDistance) || 0
+        };
+        user.jobsites.push(existingSite);
+      } else {
+        if (jobsiteContact) existingSite.contactName = jobsiteContact;
+        if (req.body.specialInstructions) existingSite.specialInstructions = req.body.specialInstructions;
+        if (req.body.deliveryDistance) existingSite.deliveryDistanceMiles = parseFloat(req.body.deliveryDistance) || 0;
+      }
     }
 
     const orderId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
