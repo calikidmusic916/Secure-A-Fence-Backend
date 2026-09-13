@@ -34,6 +34,7 @@ async function seed() {
         payload = data.products.map(p => {
           const copy = { ...p };
           delete copy.isRental;
+          delete copy.isPurchase;
           delete copy.unit;
           delete copy.suspended;
           return copy;
