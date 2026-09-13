@@ -315,7 +315,8 @@ app.post('/api/orders', authenticateToken, async (req, res) => {
 
       const distance = parseFloat(req.body.deliveryDistance) || 0;
       deliveryFee = distance <= 20 ? 0 : (distance - 20) * 2 * 1.00;
-      tax = Math.round(subtotal * 0.08 * 100) / 100;
+      const isTaxable = user && user.isTaxable !== undefined ? Boolean(user.isTaxable) : true;
+      tax = isTaxable ? Math.round(subtotal * 0.08 * 100) / 100 : 0;
       totalAmount = Math.round((subtotal + deliveryFee + tax) * 100) / 100;
     }
 
@@ -656,12 +657,27 @@ app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req,
 
 app.get('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
   const db = getDb();
-  const customers = db.users.filter(u => u.role === 'customer');
-  res.json(customers.map(sanitizeRecord));
+  const customers = db.users.filter(u => u.role === 'customer').map(u => {
+    const cust = sanitizeRecord(u);
+    if (cust.jobsites && Array.isArray(cust.jobsites)) {
+      cust.jobsites = cust.jobsites.map(j => {
+        const activeRentals = (db.rentals || []).filter(r =>
+          r.customerId === u.id &&
+          r.status !== 'Returned' &&
+          (r.jobsiteAddress?.toLowerCase().includes((j.address || '').toLowerCase()) || r.jobsiteAddress?.toLowerCase().includes((j.name || '').toLowerCase()))
+        );
+        return { ...j, activeRentals };
+      });
+    } else {
+      cust.jobsites = [];
+    }
+    return cust;
+  });
+  res.json(customers);
 });
 
 app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, company, phone, role } = req.body;
+  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites } = req.body;
   const db = getDb();
   const newUser = {
     id: `${(role || 'customer').startsWith('admin') ? 'admin' : 'cust'}-${Date.now()}`,
@@ -670,11 +686,106 @@ app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, re
     passwordHash: '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g', // default: password123
     role: role || 'customer',
     company: company || '',
-    phone: phone || ''
+    phone: phone || '',
+    isTaxable: isTaxable !== undefined ? Boolean(isTaxable) : true,
+    businessAddress: businessAddress || '',
+    jobsites: Array.isArray(jobsites) ? jobsites : []
   };
   db.users.push(newUser);
   await saveDb(db);
   res.status(201).json({ success: true, user: sanitizeRecord(newUser) });
+});
+
+app.put('/api/admin/customers/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites } = req.body;
+  const db = getDb();
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'Customer not found' });
+
+  if (name) user.name = name;
+  if (email) user.email = email.toLowerCase();
+  if (company !== undefined) user.company = company;
+  if (phone !== undefined) user.phone = phone;
+  if (role) user.role = role;
+  if (isTaxable !== undefined) user.isTaxable = Boolean(isTaxable);
+  if (businessAddress !== undefined) user.businessAddress = businessAddress;
+  if (Array.isArray(jobsites)) user.jobsites = jobsites;
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Customer updated', user: sanitizeRecord(user) });
+});
+
+// Manage Jobsites for a Customer
+app.post('/api/admin/customers/:id/jobsites', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user) return res.status(404).json({ error: 'Customer not found' });
+
+  if (!user.jobsites) user.jobsites = [];
+
+  const newJobsite = {
+    id: `site-${Date.now()}`,
+    name: req.body.name || 'Jobsite',
+    address: req.body.address || '',
+    contactName: req.body.contactName || '',
+    contactPhone: req.body.contactPhone || '',
+    specialInstructions: req.body.specialInstructions || '',
+    deliveryDistanceMiles: parseFloat(req.body.deliveryDistanceMiles) || 0
+  };
+
+  user.jobsites.push(newJobsite);
+  await saveDb(db);
+  res.status(201).json({ success: true, jobsite: newJobsite, user: sanitizeRecord(user) });
+});
+
+app.put('/api/admin/customers/:id/jobsites/:jobsiteId', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user || !user.jobsites) return res.status(404).json({ error: 'Customer or jobsites not found' });
+
+  const jobsite = user.jobsites.find(j => j.id === req.params.jobsiteId);
+  if (!jobsite) return res.status(404).json({ error: 'Jobsite not found' });
+
+  if (req.body.name) jobsite.name = req.body.name;
+  if (req.body.address !== undefined) jobsite.address = req.body.address;
+  if (req.body.contactName !== undefined) jobsite.contactName = req.body.contactName;
+  if (req.body.contactPhone !== undefined) jobsite.contactPhone = req.body.contactPhone;
+  if (req.body.specialInstructions !== undefined) jobsite.specialInstructions = req.body.specialInstructions;
+  if (req.body.deliveryDistanceMiles !== undefined) jobsite.deliveryDistanceMiles = parseFloat(req.body.deliveryDistanceMiles) || 0;
+
+  await saveDb(db);
+  res.json({ success: true, jobsite, user: sanitizeRecord(user) });
+});
+
+app.delete('/api/admin/customers/:id/jobsites/:jobsiteId', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const user = db.users.find(u => u.id === req.params.id);
+  if (!user || !user.jobsites) return res.status(404).json({ error: 'Customer or jobsites not found' });
+
+  user.jobsites = user.jobsites.filter(j => j.id !== req.params.jobsiteId);
+  await saveDb(db);
+  res.json({ success: true, message: 'Jobsite removed', user: sanitizeRecord(user) });
+});
+
+app.delete('/api/admin/customers/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const index = db.users.findIndex(u => u.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Customer not found' });
+
+  const deletedId = req.params.id;
+  db.users.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('users').delete().eq('id', deletedId);
+      console.log(`Deleted user ${deletedId} from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting user from Supabase:', e.message);
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Customer deleted successfully' });
 });
 
 app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) => {
