@@ -542,8 +542,35 @@ app.put('/api/admin/sales/:id/status', authenticateToken, requireAdmin, async (r
   if (!order) return res.status(404).json({ error: 'Order not found' });
 
   order.status = status;
+
+  // When order is marked 'Ready for Delivery', ensure shipment is created in Shipping Panel
+  if (status && (status.toLowerCase().includes('ready') || status.toLowerCase().includes('route') || status.toLowerCase().includes('delivery'))) {
+    if (!db.shipments) db.shipments = [];
+    let existingShipment = db.shipments.find(s => s.orderId === order.id);
+
+    if (!existingShipment) {
+      existingShipment = {
+        id: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
+        orderId: order.id,
+        type: order.orderType === 'rental' ? 'Rental Delivery' : 'Sales Delivery',
+        driverName: 'Unassigned Dispatcher',
+        dispatchDate: order.deliveryDate || new Date().toISOString().split('T')[0],
+        status: 'Scheduled',
+        destination: order.deliveryAddress,
+        notes: `Jobsite Contact: ${order.jobsiteContact || order.customerName}`
+      };
+      db.shipments.unshift(existingShipment);
+      console.log(`Created shipment ${existingShipment.id} for order ${order.id} marked ${status}.`);
+    }
+  } else if (status && status.toLowerCase() === 'processing') {
+    // If order is reverted to Processing, remove/hide shipment from Shipping Panel
+    if (db.shipments) {
+      db.shipments = db.shipments.filter(s => s.orderId !== order.id);
+    }
+  }
+
   await saveDb(db);
-  res.json({ message: 'Order status updated', order });
+  res.json({ message: 'Order status updated', order: sanitizeRecord(order) });
 });
 
 app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, async (req, res) => {
@@ -602,7 +629,15 @@ app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, async
 
 app.get('/api/admin/shipments', authenticateToken, requireAdmin, (req, res) => {
   const db = getDb();
-  res.json(db.shipments.map(sanitizeRecord));
+  const visibleShipments = (db.shipments || []).filter(s => {
+    if (!s.orderId) return true;
+    const order = db.orders.find(o => o.id === s.orderId);
+    if (order && order.status && order.status.toLowerCase() === 'processing') {
+      return false; // Hide from shipping panel while processing
+    }
+    return true;
+  });
+  res.json(visibleShipments.map(sanitizeRecord));
 });
 
 // --- ROUTE OPTIMIZATION ENGINE ---
@@ -684,6 +719,17 @@ app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req,
   if (status) {
     const previousStatus = shipment.status || '';
     shipment.status = status;
+
+    // When shipment status is set to In Route -> Order status automatically becomes 'Out for Delivery'
+    if (status.toLowerCase() === 'in route' || status.toLowerCase() === 'in-route') {
+      if (shipment.orderId) {
+        const order = db.orders.find(o => o.id === shipment.orderId);
+        if (order) {
+          order.status = 'Out for Delivery';
+          console.log(`Order ${order.id} status updated to 'Out for Delivery' as shipment ${shipment.id} is In Route.`);
+        }
+      }
+    }
 
     // When shipment is marked as Delivered:
     if (status.toLowerCase() === 'delivered' && previousStatus.toLowerCase() !== 'delivered') {
