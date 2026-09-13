@@ -792,9 +792,20 @@ app.delete('/api/admin/products/:id', authenticateToken, requireAdmin, async (re
   const index = db.products.findIndex(p => p.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: 'Product not found' });
 
+  const deletedId = req.params.id;
   db.products.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('products').delete().eq('id', deletedId);
+      console.log(`Deleted product ${deletedId} permanently from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting product from Supabase:', e.message);
+    }
+  }
+
   await saveDb(db);
-  res.json({ success: true, message: 'Product deleted' });
+  res.json({ success: true, message: 'Product deleted permanently' });
 });
 
 app.post('/api/admin/products/upload', authenticateToken, requireAdmin, upload.single('image'), async (req, res) => {

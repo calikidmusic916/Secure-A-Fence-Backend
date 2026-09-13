@@ -90,18 +90,26 @@ async function syncToSupabase(db) {
     if (db.users?.length > 0) syncTasks.push(supabase.from('users').upsert(db.users));
 
     if (db.products?.length > 0) {
-      // Safely attempt upsert, ignoring missing columns if they cause errors
+      const strippedProducts = db.products.map(p => {
+        const copy = { ...p };
+        delete copy.suspended;
+        delete copy.unit;
+        delete copy.isRental;
+        delete copy.isPurchase;
+        return copy;
+      });
+
+      syncTasks.push(supabase.from('products').upsert(strippedProducts));
+
+      // Ensure deleted products are explicitly purged from Supabase table
+      const activeIds = db.products.map(p => p.id);
       syncTasks.push(
-        supabase.from('products').upsert(db.products).then(({ error }) => {
-          if (error && error.code === 'PGRST204') {
-            console.warn('Columns missing in Supabase. Upserting with stripped fields...');
-            const stripped = db.products.map(p => {
-              const copy = { ...p };
-              delete copy.suspended;
-              delete copy.unit;
-              return copy;
-            });
-            return supabase.from('products').upsert(stripped);
+        supabase.from('products').select('id').then(async ({ data: existing }) => {
+          if (existing) {
+            const orphaned = existing.map(e => e.id).filter(id => !activeIds.includes(id));
+            for (const orphanId of orphaned) {
+              await supabase.from('products').delete().eq('id', orphanId);
+            }
           }
         })
       );
