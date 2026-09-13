@@ -669,18 +669,104 @@ app.post('/api/admin/dispatch/optimize', authenticateToken, requireAdmin, (req, 
 });
 
 app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req, res) => {
-  const { driverName, status, dispatchDate, notes } = req.body;
+  const { driverName, status, dispatchDate, notes, deliveryPhotos } = req.body;
   const db = getDb();
   const shipment = db.shipments.find(s => s.id === req.params.id);
   if (!shipment) return res.status(404).json({ error: 'Shipment record not found' });
 
-  if (driverName) shipment.driverName = driverName;
-  if (status) shipment.status = status;
-  if (dispatchDate) shipment.dispatchDate = dispatchDate;
-  if (notes) shipment.notes = notes;
+  if (driverName !== undefined) shipment.driverName = driverName;
+  if (dispatchDate !== undefined) shipment.dispatchDate = dispatchDate;
+  if (notes !== undefined) shipment.notes = notes;
+  if (Array.isArray(deliveryPhotos)) shipment.deliveryPhotos = deliveryPhotos;
+
+  let generatedInvoice = null;
+
+  if (status) {
+    const previousStatus = shipment.status || '';
+    shipment.status = status;
+
+    // When shipment is marked as Delivered:
+    if (status.toLowerCase() === 'delivered' && previousStatus.toLowerCase() !== 'delivered') {
+      // 1. Update associated order status
+      if (shipment.orderId) {
+        const order = db.orders.find(o => o.id === shipment.orderId);
+        if (order) {
+          order.status = 'Delivered';
+
+          // 2. Auto-generate invoice if not already present
+          if (!db.invoices) db.invoices = [];
+          const existingInvoice = db.invoices.find(inv => inv.orderId === order.id);
+
+          if (!existingInvoice) {
+            generatedInvoice = {
+              id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+              orderId: order.id,
+              customerId: order.customerId,
+              customerName: order.customerName,
+              customerCompany: order.customerCompany || 'Direct Client',
+              amount: order.totalAmount,
+              subtotal: order.subtotal,
+              deliveryFee: order.deliveryFee,
+              tax: order.tax,
+              status: 'Unpaid',
+              createdAt: new Date().toISOString().split('T')[0]
+            };
+            db.invoices.unshift(generatedInvoice);
+            console.log(`Auto-generated invoice ${generatedInvoice.id} for delivered order ${order.id}`);
+          }
+        }
+      }
+    }
+  }
 
   await saveDb(db);
-  res.json({ message: 'Shipment updated', shipment });
+  res.json({
+    message: 'Shipment updated successfully',
+    shipment: sanitizeRecord(shipment),
+    invoiceCreated: generatedInvoice ? sanitizeRecord(generatedInvoice) : null
+  });
+});
+
+app.post('/api/admin/shipments/:id/photos', authenticateToken, requireAdmin, upload.single('photo'), async (req, res) => {
+  const db = getDb();
+  const shipment = db.shipments.find(s => s.id === req.params.id);
+  if (!shipment) return res.status(404).json({ error: 'Shipment record not found' });
+
+  if (!req.file) return res.status(400).json({ error: 'No photo file provided' });
+
+  let photoUrl = '';
+  if (supabase) {
+    try {
+      const fileExt = path.extname(req.file.originalname) || '.jpg';
+      const fileName = `delivery-proof-${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+
+      if (!error) {
+        const { data: publicUrlData } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+        photoUrl = publicUrlData.publicUrl;
+      }
+    } catch (e) {
+      console.error('Supabase delivery photo upload error:', e.message);
+    }
+  }
+
+  if (!photoUrl) {
+    photoUrl = '/assets/panel.png';
+  }
+
+  if (!shipment.deliveryPhotos) shipment.deliveryPhotos = [];
+  shipment.deliveryPhotos.push(photoUrl);
+
+  await saveDb(db);
+  res.json({ success: true, photoUrl, shipment: sanitizeRecord(shipment) });
 });
 
 app.delete('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req, res) => {
