@@ -90,14 +90,15 @@ async function syncToSupabase(db) {
     if (db.users?.length > 0) syncTasks.push(supabase.from('users').upsert(db.users));
 
     if (db.products?.length > 0) {
-      // Safely attempt upsert, ignoring 'suspended' if column missing
+      // Safely attempt upsert, ignoring missing columns if they cause errors
       syncTasks.push(
         supabase.from('products').upsert(db.products).then(({ error }) => {
           if (error && error.code === 'PGRST204') {
-            console.warn('Suspended column missing in Supabase. Upserting without suspended field...');
+            console.warn('Columns missing in Supabase. Upserting with stripped fields...');
             const stripped = db.products.map(p => {
               const copy = { ...p };
               delete copy.suspended;
+              delete copy.unit;
               return copy;
             });
             return supabase.from('products').upsert(stripped);
