@@ -82,6 +82,23 @@ async function saveDb(data) {
   await syncToSupabase(data);
 }
 
+async function purgeOrphanedRecords(tableName, activeRecords) {
+  if (!supabase) return;
+  try {
+    const activeIds = (activeRecords || []).map(item => item.id);
+    const { data: existingSupabaseRecords } = await supabase.from(tableName).select('id');
+    if (existingSupabaseRecords) {
+      const orphaned = existingSupabaseRecords.map(e => e.id).filter(id => !activeIds.includes(id));
+      for (const orphanId of orphaned) {
+        await supabase.from(tableName).delete().eq('id', orphanId);
+        console.log(`Purged deleted record ${orphanId} permanently from Supabase table "${tableName}".`);
+      }
+    }
+  } catch (err) {
+    console.error(`Error purging orphaned records from Supabase table "${tableName}":`, err.message);
+  }
+}
+
 async function syncToSupabase(db) {
   if (!supabase) return;
   try {
@@ -89,6 +106,7 @@ async function syncToSupabase(db) {
       const { error } = await supabase.from('users').upsert(db.users);
       if (error) console.error('Supabase users sync error:', error.message);
     }
+    await purgeOrphanedRecords('users', db.users);
 
     if (db.products) {
       const dbProductsPayload = db.products.map(p => {
@@ -105,35 +123,32 @@ async function syncToSupabase(db) {
         const { error: prodErr } = await supabase.from('products').upsert(dbProductsPayload);
         if (prodErr) console.error('Supabase products upsert error:', prodErr.message);
       }
-
-      // Purge orphaned/deleted products from Supabase
-      const activeIds = db.products.map(p => p.id);
-      const { data: existingSupabaseProducts } = await supabase.from('products').select('id');
-      if (existingSupabaseProducts) {
-        const orphaned = existingSupabaseProducts.map(e => e.id).filter(id => !activeIds.includes(id));
-        for (const orphanId of orphaned) {
-          await supabase.from('products').delete().eq('id', orphanId);
-          console.log(`Purged deleted product ${orphanId} permanently from Supabase.`);
-        }
-      }
+      await purgeOrphanedRecords('products', db.products);
     }
 
     if (db.orders?.length > 0) {
       const { error } = await supabase.from('orders').upsert(db.orders);
       if (error) console.error('Supabase orders sync error:', error.message);
     }
+    await purgeOrphanedRecords('orders', db.orders);
+
     if (db.rentals?.length > 0) {
       const { error } = await supabase.from('rentals').upsert(db.rentals);
       if (error) console.error('Supabase rentals sync error:', error.message);
     }
+    await purgeOrphanedRecords('rentals', db.rentals);
+
     if (db.shipments?.length > 0) {
       const { error } = await supabase.from('shipments').upsert(db.shipments);
       if (error) console.error('Supabase shipments sync error:', error.message);
     }
+    await purgeOrphanedRecords('shipments', db.shipments);
+
     if (db.invoices?.length > 0) {
       const { error } = await supabase.from('invoices').upsert(db.invoices);
       if (error) console.error('Supabase invoices sync error:', error.message);
     }
+    await purgeOrphanedRecords('invoices', db.invoices);
 
     console.log('Successfully synced data to Supabase.');
   } catch (err) {

@@ -585,6 +585,50 @@ app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, async (
   res.json({ message: 'Payment status updated', order });
 });
 
+app.delete('/api/admin/sales/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  if (!db.orders) db.orders = [];
+  const index = db.orders.findIndex(o => o.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Order not found' });
+
+  const deletedId = req.params.id;
+  db.orders.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('orders').delete().eq('id', deletedId);
+      console.log(`Deleted order ${deletedId} permanently from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting order from Supabase:', e.message);
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Order deleted permanently' });
+});
+
+app.delete('/api/admin/rentals/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  if (!db.rentals) db.rentals = [];
+  const index = db.rentals.findIndex(r => r.id === req.params.id);
+  if (index === -1) return res.status(404).json({ error: 'Rental not found' });
+
+  const deletedId = req.params.id;
+  db.rentals.splice(index, 1);
+
+  if (supabase) {
+    try {
+      await supabase.from('rentals').delete().eq('id', deletedId);
+      console.log(`Deleted rental ${deletedId} permanently from Supabase.`);
+    } catch (e) {
+      console.error('Error deleting rental from Supabase:', e.message);
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Rental deleted permanently' });
+});
+
 app.get('/api/admin/rentals', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const today = new Date().toISOString().split('T')[0];
