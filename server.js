@@ -751,7 +751,8 @@ app.post('/api/admin/products', authenticateToken, requireAdmin, async (req, res
     description: req.body.description || '',
     image: req.body.image || '/assets/panel.png',
     specs: req.body.specs || '',
-    suspended: req.body.suspended || false
+    suspended: req.body.suspended || false,
+    isRental: req.body.isRental !== undefined ? Boolean(req.body.isRental) : true
   };
   db.products.push(newProduct);
   await saveDb(db);
@@ -771,7 +772,8 @@ app.put('/api/admin/products/:id', authenticateToken, requireAdmin, async (req, 
       salePrice: req.body.salePrice !== undefined ? parseFloat(req.body.salePrice) : db.products[index].salePrice,
       rentalPriceMonthly: req.body.rentalPriceMonthly !== undefined ? parseFloat(req.body.rentalPriceMonthly) : db.products[index].rentalPriceMonthly,
       inStock: req.body.inStock !== undefined ? parseInt(req.body.inStock) : db.products[index].inStock,
-      rentedCount: req.body.rentedCount !== undefined ? parseInt(req.body.rentedCount) : db.products[index].rentedCount
+      rentedCount: req.body.rentedCount !== undefined ? parseInt(req.body.rentedCount) : db.products[index].rentedCount,
+      isRental: req.body.isRental !== undefined ? Boolean(req.body.isRental) : (db.products[index].isRental !== undefined ? db.products[index].isRental : true)
     };
 
     db.products[index] = updatedProduct;

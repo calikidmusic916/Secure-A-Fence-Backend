@@ -29,7 +29,17 @@ async function seed() {
   for (const table of tables) {
     if (data[table] && data[table].length > 0) {
       console.log(`Uploading ${data[table].length} records to "${table}"...`);
-      const { error } = await supabase.from(table).upsert(data[table]);
+      let payload = data[table];
+      if (table === 'products') {
+        payload = data.products.map(p => {
+          const copy = { ...p };
+          delete copy.isRental;
+          delete copy.unit;
+          delete copy.suspended;
+          return copy;
+        });
+      }
+      const { error } = await supabase.from(table).upsert(payload);
       if (error) {
         console.error(`  Error uploading to ${table}:`, error.message);
       } else {
