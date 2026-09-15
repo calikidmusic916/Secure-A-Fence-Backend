@@ -673,15 +673,7 @@ app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, async
 
 app.get('/api/admin/shipments', authenticateToken, requireAdmin, (req, res) => {
   const db = getDb();
-  const visibleShipments = (db.shipments || []).filter(s => {
-    if (!s.orderId) return true;
-    const order = db.orders.find(o => o.id === s.orderId);
-    if (order && order.status && order.status.toLowerCase() === 'processing') {
-      return false; // Hide from shipping panel while processing
-    }
-    return true;
-  });
-  res.json(visibleShipments.map(sanitizeRecord));
+  res.json((db.shipments || []).map(sanitizeRecord));
 });
 
 // --- ROUTE OPTIMIZATION ENGINE ---
@@ -1021,11 +1013,29 @@ app.delete('/api/admin/customers/:id', authenticateToken, requireAdmin, async (r
 app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   const newOrder = {
-    id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+    id: req.body.id || `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
     ...req.body,
     createdAt: new Date().toISOString()
   };
   db.orders.unshift(newOrder);
+
+  // Automatically create active dispatch shipment so order appears in Deliveries tab immediately
+  if (!db.shipments) db.shipments = [];
+  const existingShipment = db.shipments.find(s => s.orderId === newOrder.id);
+  if (!existingShipment) {
+    const newShipment = {
+      id: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderId: newOrder.id,
+      type: newOrder.orderType === 'rental' ? 'Rental Delivery' : 'Sales Delivery',
+      driverName: 'Unassigned Dispatcher',
+      dispatchDate: newOrder.deliveryDate || new Date().toISOString().split('T')[0],
+      status: 'Scheduled',
+      destination: newOrder.deliveryAddress || 'Sacramento Warehouse',
+      notes: `Jobsite Contact: ${newOrder.jobsiteContact || newOrder.customerName}`
+    };
+    db.shipments.unshift(newShipment);
+  }
+
   await saveDb(db);
   res.status(201).json({ success: true, order: sanitizeRecord(newOrder) });
 });
