@@ -7,6 +7,9 @@ create table if not exists public.users (
   role text not null default 'customer',
   company text,
   phone text,
+  "isTaxable" boolean not null default true,
+  "businessAddress" text,
+  jobsites jsonb not null default '[]'::jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
@@ -22,7 +25,11 @@ create table if not exists public.products (
   "rentedCount" integer not null default 0,
   description text,
   image text,
-  specs text
+  specs text,
+  unit text default 'unit',
+  suspended boolean not null default false,
+  "isRental" boolean not null default true,
+  "isPurchase" boolean not null default true
 );
 
 -- 3. Orders Table
@@ -76,7 +83,10 @@ create table if not exists public.shipments (
   "dispatchDate" text,
   status text not null default 'Pending Dispatch',
   destination text,
-  notes text
+  notes text,
+  eta text,
+  "deliveryPhotos" jsonb default '[]'::jsonb,
+  "deliveredItems" jsonb default '[]'::jsonb
 );
 
 -- 6. Invoices Table
@@ -85,13 +95,30 @@ create table if not exists public.invoices (
   "orderId" text not null,
   "customerName" text not null,
   amount numeric not null default 0,
+  subtotal numeric default 0,
+  "deliveryFee" numeric default 0,
+  tax numeric default 0,
   status text not null default 'Unpaid',
   "createdAt" text
 );
 
--- 7. Add missing columns to existing orders table (if previously created)
-alter table public.orders add column if not exists "paymentStatus" text not null default 'Unpaid';
-alter table public.orders add column if not exists "paymentMethod" text not null default 'None';
+-- 7. Schema Alterations (Safely Add Columns to Pre-existing Supabase Tables)
+alter table public.users add column if not exists "isTaxable" boolean default true;
+alter table public.users add column if not exists "businessAddress" text;
+alter table public.users add column if not exists jobsites jsonb default '[]'::jsonb;
 
--- 8. Add suspended column to products table
-alter table public.products add column if not exists suspended boolean not null default false;
+alter table public.products add column if not exists unit text default 'unit';
+alter table public.products add column if not exists suspended boolean default false;
+alter table public.products add column if not exists "isRental" boolean default true;
+alter table public.products add column if not exists "isPurchase" boolean default true;
+
+alter table public.orders add column if not exists "paymentStatus" text default 'Unpaid';
+alter table public.orders add column if not exists "paymentMethod" text default 'None';
+
+alter table public.shipments add column if not exists eta text;
+alter table public.shipments add column if not exists "deliveryPhotos" jsonb default '[]'::jsonb;
+alter table public.shipments add column if not exists "deliveredItems" jsonb default '[]'::jsonb;
+
+alter table public.invoices add column if not exists subtotal numeric default 0;
+alter table public.invoices add column if not exists "deliveryFee" numeric default 0;
+alter table public.invoices add column if not exists tax numeric default 0;
