@@ -103,7 +103,17 @@ async function syncToSupabase(db) {
   if (!supabase) return;
   try {
     if (db.users?.length > 0) {
-      const { error } = await supabase.from('users').upsert(db.users);
+      const dbUsersPayload = db.users.map(u => {
+        const copy = { ...u };
+        if (!copy.passwordHash) {
+          copy.passwordHash = '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g';
+        }
+        delete copy.jobsites;
+        delete copy.isTaxable;
+        delete copy.businessAddress;
+        return copy;
+      });
+      const { error } = await supabase.from('users').upsert(dbUsersPayload);
       if (error) console.error('Supabase users sync error:', error.message);
     }
     await purgeOrphanedRecords('users', db.users);
@@ -182,7 +192,17 @@ async function initDbFromSupabase() {
       supabase.from('invoices').select('*')
     ]);
 
-    if (users) cachedDb.users = users;
+    if (users) {
+      cachedDb.users = users.map(u => {
+        const local = cachedDb.users.find(lu => lu.id === u.id || (lu.email && lu.email.toLowerCase() === u.email?.toLowerCase()));
+        return {
+          ...u,
+          jobsites: local?.jobsites || u.jobsites || [],
+          isTaxable: local?.isTaxable !== undefined ? Boolean(local.isTaxable) : (u.isTaxable !== undefined ? Boolean(u.isTaxable) : true),
+          businessAddress: local?.businessAddress || u.businessAddress || ''
+        };
+      });
+    }
     if (products) {
       cachedDb.products = products.map(p => ({
         ...p,

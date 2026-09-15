@@ -905,13 +905,14 @@ app.get('/api/admin/customers', authenticateToken, requireAdmin, (req, res) => {
 });
 
 app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites } = req.body;
+  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites, password } = req.body;
   const db = getDb();
+  const passwordHash = password ? await bcrypt.hash(password, 10) : '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g';
   const newUser = {
     id: `${(role || 'customer').startsWith('admin') ? 'admin' : 'cust'}-${Date.now()}`,
     name,
     email: email ? email.toLowerCase() : '',
-    passwordHash: '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g', // default: password123
+    passwordHash,
     role: role || 'customer',
     company: company || '',
     phone: phone || '',
@@ -925,7 +926,7 @@ app.post('/api/admin/customers', authenticateToken, requireAdmin, async (req, re
 });
 
 app.put('/api/admin/customers/:id', authenticateToken, requireAdmin, async (req, res) => {
-  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites } = req.body;
+  const { name, email, company, phone, role, isTaxable, businessAddress, jobsites, password } = req.body;
   const db = getDb();
   const user = db.users.find(u => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: 'Customer not found' });
@@ -938,6 +939,7 @@ app.put('/api/admin/customers/:id', authenticateToken, requireAdmin, async (req,
   if (isTaxable !== undefined) user.isTaxable = Boolean(isTaxable);
   if (businessAddress !== undefined) user.businessAddress = businessAddress;
   if (Array.isArray(jobsites)) user.jobsites = jobsites;
+  if (password) user.passwordHash = await bcrypt.hash(password, 10);
 
   await saveDb(db);
   res.json({ success: true, message: 'Customer updated', user: sanitizeRecord(user) });
