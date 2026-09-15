@@ -837,15 +837,21 @@ app.post('/api/admin/dispatch/optimize', authenticateToken, requireAdmin, (req, 
 });
 
 app.put('/api/admin/shipments/:id', authenticateToken, requireAdmin, async (req, res) => {
-  const { driverName, status, dispatchDate, notes, deliveryPhotos } = req.body;
+  const { driverName, status, dispatchDate, destination, notes, eta, deliveryPhotos, deliveredItems, isTaxable, discountAmount, overrideTotal } = req.body;
   const db = getDb();
   const shipment = db.shipments.find(s => s.id === req.params.id);
   if (!shipment) return res.status(404).json({ error: 'Shipment record not found' });
 
   if (driverName !== undefined) shipment.driverName = driverName;
   if (dispatchDate !== undefined) shipment.dispatchDate = dispatchDate;
+  if (destination !== undefined) shipment.destination = destination;
   if (notes !== undefined) shipment.notes = notes;
+  if (eta !== undefined) shipment.eta = eta;
   if (Array.isArray(deliveryPhotos)) shipment.deliveryPhotos = deliveryPhotos;
+  if (Array.isArray(deliveredItems)) shipment.deliveredItems = deliveredItems;
+  if (isTaxable !== undefined) shipment.isTaxable = Boolean(isTaxable);
+  if (discountAmount !== undefined) shipment.discountAmount = discountAmount;
+  if (overrideTotal !== undefined) shipment.overrideTotal = overrideTotal;
 
   let generatedInvoice = null;
 
