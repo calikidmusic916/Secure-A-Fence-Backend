@@ -585,6 +585,103 @@ app.put('/api/admin/sales/:id/payment', authenticateToken, requireAdmin, async (
   res.json({ message: 'Payment status updated', order });
 });
 
+app.put('/api/admin/sales/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const order = db.orders.find(o => o.id === req.params.id);
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  const {
+    customerName,
+    customerCompany,
+    customerEmail,
+    customerPhone,
+    deliveryAddress,
+    items,
+    subtotal,
+    deliveryFee,
+    tax,
+    totalAmount,
+    status,
+    paymentStatus,
+    paymentMethod,
+    deliveryDate
+  } = req.body;
+
+  if (customerName !== undefined) order.customerName = customerName;
+  if (customerCompany !== undefined) order.customerCompany = customerCompany;
+  if (customerEmail !== undefined) order.customerEmail = customerEmail;
+  if (customerPhone !== undefined) order.customerPhone = customerPhone;
+  if (deliveryAddress !== undefined) order.deliveryAddress = deliveryAddress;
+  if (Array.isArray(items)) order.items = items;
+  if (subtotal !== undefined) order.subtotal = subtotal;
+  if (deliveryFee !== undefined) order.deliveryFee = deliveryFee;
+  if (tax !== undefined) order.tax = tax;
+  if (totalAmount !== undefined) order.totalAmount = totalAmount;
+  if (status !== undefined) order.status = status;
+  if (paymentStatus !== undefined) order.paymentStatus = paymentStatus;
+  if (paymentMethod !== undefined) order.paymentMethod = paymentMethod;
+  if (deliveryDate !== undefined) order.deliveryDate = deliveryDate;
+
+  if (db.shipments) {
+    const shipment = db.shipments.find(s => s.orderId === order.id);
+    if (shipment) {
+      if (deliveryAddress !== undefined) shipment.destination = deliveryAddress;
+      if (status !== undefined) shipment.status = status;
+    }
+  }
+
+  if (db.invoices) {
+    const invoice = db.invoices.find(inv => inv.orderId === order.id);
+    if (invoice) {
+      if (customerName !== undefined) invoice.customerName = customerName;
+      if (totalAmount !== undefined) invoice.amount = totalAmount;
+      if (subtotal !== undefined) invoice.subtotal = subtotal;
+      if (deliveryFee !== undefined) invoice.deliveryFee = deliveryFee;
+      if (tax !== undefined) invoice.tax = tax;
+    }
+  }
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Order updated successfully', order: sanitizeRecord(order) });
+});
+
+app.put('/api/admin/rentals/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  const rental = db.rentals.find(r => r.id === req.params.id);
+  if (!rental) return res.status(404).json({ error: 'Rental not found' });
+
+  const {
+    customerName,
+    customerCompany,
+    customerEmail,
+    customerPhone,
+    jobsiteAddress,
+    jobsiteContact,
+    startDate,
+    endDate,
+    monthlyRateTotal,
+    status,
+    items,
+    notes
+  } = req.body;
+
+  if (customerName !== undefined) rental.customerName = customerName;
+  if (customerCompany !== undefined) rental.customerCompany = customerCompany;
+  if (customerEmail !== undefined) rental.customerEmail = customerEmail;
+  if (customerPhone !== undefined) rental.customerPhone = customerPhone;
+  if (jobsiteAddress !== undefined) rental.jobsiteAddress = jobsiteAddress;
+  if (jobsiteContact !== undefined) rental.jobsiteContact = jobsiteContact;
+  if (startDate !== undefined) rental.startDate = startDate;
+  if (endDate !== undefined) rental.endDate = endDate;
+  if (monthlyRateTotal !== undefined) rental.monthlyRateTotal = monthlyRateTotal;
+  if (status !== undefined) rental.status = status;
+  if (Array.isArray(items)) rental.items = items;
+  if (notes !== undefined) rental.notes = notes;
+
+  await saveDb(db);
+  res.json({ success: true, message: 'Rental updated successfully', rental: sanitizeRecord(rental) });
+});
+
 app.delete('/api/admin/sales/:id', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   if (!db.orders) db.orders = [];
