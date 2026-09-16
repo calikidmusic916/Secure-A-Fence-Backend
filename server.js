@@ -1141,19 +1141,20 @@ app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) =
   };
   db.orders.unshift(newOrder);
 
-  // Automatically create active dispatch shipment so order appears in Deliveries tab immediately
+  // Automatically create single active dispatch shipment with matching Order ID
   if (!db.shipments) db.shipments = [];
-  const existingShipment = db.shipments.find(s => s.orderId === newOrder.id);
+  const existingShipment = db.shipments.find(s => s.orderId === newOrder.id || s.id === newOrder.id);
   if (!existingShipment) {
     const newShipment = {
-      id: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: newOrder.id, // Consistent ID across entire app (e.g. ORD-8419)
       orderId: newOrder.id,
       type: newOrder.orderType === 'rental' ? 'Rental Delivery' : 'Sales Delivery',
       driverName: 'Unassigned Dispatcher',
       dispatchDate: newOrder.deliveryDate || new Date().toISOString().split('T')[0],
       status: 'Scheduled',
       destination: newOrder.deliveryAddress || 'Sacramento Warehouse',
-      notes: `Jobsite Contact: ${newOrder.jobsiteContact || newOrder.customerName}`
+      notes: `Jobsite Contact: ${newOrder.jobsiteContact || newOrder.customerName}`,
+      deliveredItems: newOrder.items || []
     };
     db.shipments.unshift(newShipment);
   }
@@ -1222,16 +1223,33 @@ app.post('/api/admin/rentals/:id/invoice', authenticateToken, requireAdmin, asyn
 });
 
 app.post('/api/admin/shipments/pickup', authenticateToken, requireAdmin, async (req, res) => {
+  const { orderId, driverName, dispatchDate, destination, notes } = req.body;
   const db = getDb();
-  const newShipment = {
-    id: `SHP-${Math.floor(1000 + Math.random() * 9000)}`,
-    type: 'Pickup',
-    ...req.body,
-    status: 'scheduled'
-  };
-  db.shipments.unshift(newShipment);
+  if (!db.shipments) db.shipments = [];
+
+  let shipment = db.shipments.find(s => s.orderId === orderId || s.id === orderId);
+  if (!shipment) {
+    shipment = {
+      id: orderId || `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderId: orderId || '',
+      type: 'Pickup Transport',
+      driverName: driverName || 'Unassigned Dispatcher',
+      dispatchDate: dispatchDate || new Date().toISOString().split('T')[0],
+      status: 'Pickup Scheduled',
+      destination: destination || 'Sacramento Warehouse',
+      notes: notes || ''
+    };
+    db.shipments.unshift(shipment);
+  } else {
+    if (driverName) shipment.driverName = driverName;
+    if (dispatchDate) shipment.dispatchDate = dispatchDate;
+    if (destination) shipment.destination = destination;
+    if (notes) shipment.notes = notes;
+    shipment.status = 'Pickup Scheduled';
+  }
+
   await saveDb(db);
-  res.status(201).json({ success: true, shipment: sanitizeRecord(newShipment) });
+  res.status(200).json({ success: true, shipment: sanitizeRecord(shipment) });
 });
 
 app.get('/api/admin/invoices', authenticateToken, requireAdmin, (req, res) => {
