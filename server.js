@@ -704,6 +704,25 @@ app.delete('/api/admin/sales/:id', authenticateToken, requireAdmin, async (req, 
   res.json({ success: true, message: 'Order deleted permanently' });
 });
 
+app.delete('/api/admin/invoices/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const db = getDb();
+  if (!db.invoices) db.invoices = [];
+  const index = db.invoices.findIndex(inv => inv.id === req.params.id || inv.orderId === req.params.id);
+  if (index !== -1) {
+    const deletedId = db.invoices[index].id;
+    db.invoices.splice(index, 1);
+    if (supabase) {
+      try {
+        await supabase.from('invoices').delete().eq('id', deletedId);
+      } catch (e) {
+        console.error('Error deleting invoice from Supabase:', e.message);
+      }
+    }
+  }
+  await saveDb(db);
+  res.json({ success: true, message: 'Invoice deleted permanently' });
+});
+
 app.delete('/api/admin/rentals/:id', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
   if (!db.rentals) db.rentals = [];
