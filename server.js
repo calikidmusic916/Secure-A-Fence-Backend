@@ -787,9 +787,38 @@ app.put('/api/admin/rentals/:id/checkin', authenticateToken, requireAdmin, async
   res.json({ message: 'Rental checked in successfully. Inventory returned to warehouse stock.', rental: sanitizeRecord(rental) });
 });
 
-app.get('/api/admin/shipments', authenticateToken, requireAdmin, (req, res) => {
+app.get('/api/admin/shipments', authenticateToken, requireAdmin, async (req, res) => {
   const db = getDb();
-  res.json((db.shipments || []).map(sanitizeRecord));
+  if (!db.shipments) db.shipments = [];
+
+  // Ensure EVERY order in db.orders has a matching active shipment dispatch so dispatches NEVER disappear
+  let createdNew = false;
+  if (db.orders && Array.isArray(db.orders)) {
+    db.orders.forEach(order => {
+      const exists = db.shipments.some(s => s.orderId === order.id || s.id === order.id);
+      if (!exists) {
+        const newShipment = {
+          id: order.id,
+          orderId: order.id,
+          type: order.orderType === 'rental' ? 'Rental Delivery' : 'Sales Delivery',
+          driverName: 'Unassigned Dispatcher',
+          dispatchDate: order.deliveryDate || new Date().toISOString().split('T')[0],
+          status: order.status || 'Scheduled',
+          destination: order.deliveryAddress || 'Sacramento Warehouse',
+          notes: `Jobsite Contact: ${order.jobsiteContact || order.customerName}`,
+          deliveredItems: order.items || []
+        };
+        db.shipments.unshift(newShipment);
+        createdNew = true;
+      }
+    });
+  }
+
+  if (createdNew) {
+    await saveDb(db);
+  }
+
+  res.json(db.shipments.map(sanitizeRecord));
 });
 
 // --- ROUTE OPTIMIZATION ENGINE ---

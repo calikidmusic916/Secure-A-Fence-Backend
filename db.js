@@ -149,7 +149,14 @@ async function syncToSupabase(db) {
     await purgeOrphanedRecords('rentals', db.rentals);
 
     if (db.shipments?.length > 0) {
-      const { error } = await supabase.from('shipments').upsert(db.shipments);
+      const dbShipmentsPayload = db.shipments.map(s => {
+        const copy = { ...s };
+        delete copy.isTaxable;
+        delete copy.discountAmount;
+        delete copy.overrideTotal;
+        return copy;
+      });
+      const { error } = await supabase.from('shipments').upsert(dbShipmentsPayload);
       if (error) console.error('Supabase shipments sync error:', error.message);
     }
     await purgeOrphanedRecords('shipments', db.shipments);
