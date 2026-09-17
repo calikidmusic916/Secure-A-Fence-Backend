@@ -37,7 +37,10 @@ const initialData = {
       passwordHash: "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
       role: "admin",
       company: "Secure-A-Fence Operations",
-      phone: "279-261-3890"
+      phone: "279-261-3890",
+      isTaxable: true,
+      businessAddress: "123 Perimeter Way, Sacramento, CA",
+      jobsites: []
     }
   ],
   products: [],
@@ -108,9 +111,9 @@ async function syncToSupabase(db) {
         if (!copy.passwordHash) {
           copy.passwordHash = '$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g';
         }
-        delete copy.jobsites;
-        delete copy.isTaxable;
-        delete copy.businessAddress;
+        if (copy.isTaxable === undefined) copy.isTaxable = true;
+        if (!copy.businessAddress) copy.businessAddress = '';
+        if (!copy.jobsites) copy.jobsites = [];
         return copy;
       });
       const { error } = await supabase.from('users').upsert(dbUsersPayload);
@@ -123,9 +126,6 @@ async function syncToSupabase(db) {
         const copy = { ...p };
         if (!copy.unit) copy.unit = 'unit';
         if (copy.suspended === undefined || copy.suspended === null) copy.suspended = false;
-        // Remove properties not present in Supabase postgres table schema
-        delete copy.isRental;
-        delete copy.isPurchase;
         return copy;
       });
 
@@ -149,14 +149,7 @@ async function syncToSupabase(db) {
     await purgeOrphanedRecords('rentals', db.rentals);
 
     if (db.shipments?.length > 0) {
-      const dbShipmentsPayload = db.shipments.map(s => {
-        const copy = { ...s };
-        delete copy.isTaxable;
-        delete copy.discountAmount;
-        delete copy.overrideTotal;
-        return copy;
-      });
-      const { error } = await supabase.from('shipments').upsert(dbShipmentsPayload);
+      const { error } = await supabase.from('shipments').upsert(db.shipments);
       if (error) console.error('Supabase shipments sync error:', error.message);
     }
     await purgeOrphanedRecords('shipments', db.shipments);
@@ -200,15 +193,12 @@ async function initDbFromSupabase() {
     ]);
 
     if (users) {
-      cachedDb.users = users.map(u => {
-        const local = cachedDb.users.find(lu => lu.id === u.id || (lu.email && lu.email.toLowerCase() === u.email?.toLowerCase()));
-        return {
-          ...u,
-          jobsites: local?.jobsites || u.jobsites || [],
-          isTaxable: local?.isTaxable !== undefined ? Boolean(local.isTaxable) : (u.isTaxable !== undefined ? Boolean(u.isTaxable) : true),
-          businessAddress: local?.businessAddress || u.businessAddress || ''
-        };
-      });
+      cachedDb.users = users.map(u => ({
+        ...u,
+        jobsites: Array.isArray(u.jobsites) ? u.jobsites : (typeof u.jobsites === 'string' ? JSON.parse(u.jobsites) : []),
+        isTaxable: u.isTaxable !== undefined ? Boolean(u.isTaxable) : true,
+        businessAddress: u.businessAddress || ''
+      }));
     }
     if (products) {
       cachedDb.products = products.map(p => ({
@@ -217,9 +207,23 @@ async function initDbFromSupabase() {
         isPurchase: p.isPurchase !== undefined ? Boolean(p.isPurchase) : true
       }));
     }
-    if (orders) cachedDb.orders = orders;
+    if (orders) {
+      cachedDb.orders = orders.map(o => ({
+        ...o,
+        isTaxable: o.isTaxable !== undefined ? Boolean(o.isTaxable) : true,
+        discountAmount: parseFloat(o.discountAmount) || 0,
+        overrideTotal: o.overrideTotal !== null && o.overrideTotal !== undefined ? parseFloat(o.overrideTotal) : null
+      }));
+    }
     if (rentals) cachedDb.rentals = rentals;
-    if (shipments) cachedDb.shipments = shipments;
+    if (shipments) {
+      cachedDb.shipments = shipments.map(s => ({
+        ...s,
+        isTaxable: s.isTaxable !== undefined ? Boolean(s.isTaxable) : true,
+        discountAmount: parseFloat(s.discountAmount) || 0,
+        overrideTotal: s.overrideTotal !== null && s.overrideTotal !== undefined ? parseFloat(s.overrideTotal) : null
+      }));
+    }
     if (invoices) cachedDb.invoices = invoices;
 
     console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users from Supabase.`);
@@ -235,6 +239,5 @@ module.exports = {
   getDb,
   saveDb,
   initDbFromSupabase,
-  isReady: () => isHydrated,
-  supabase
+  syncToSupabase
 };

@@ -52,7 +52,10 @@ create table if not exists public.orders (
   "deliveryDate" text,
   "createdAt" text,
   "paymentStatus" text not null default 'Unpaid',
-  "paymentMethod" text not null default 'None'
+  "paymentMethod" text not null default 'None',
+  "isTaxable" boolean not null default true,
+  "discountAmount" numeric not null default 0,
+  "overrideTotal" numeric
 );
 
 -- 4. Rentals Table
@@ -86,7 +89,10 @@ create table if not exists public.shipments (
   notes text,
   eta text,
   "deliveryPhotos" jsonb default '[]'::jsonb,
-  "deliveredItems" jsonb default '[]'::jsonb
+  "deliveredItems" jsonb default '[]'::jsonb,
+  "isTaxable" boolean default true,
+  "discountAmount" numeric default 0,
+  "overrideTotal" numeric
 );
 
 -- 6. Invoices Table
@@ -114,10 +120,16 @@ alter table public.products add column if not exists "isPurchase" boolean defaul
 
 alter table public.orders add column if not exists "paymentStatus" text default 'Unpaid';
 alter table public.orders add column if not exists "paymentMethod" text default 'None';
+alter table public.orders add column if not exists "isTaxable" boolean default true;
+alter table public.orders add column if not exists "discountAmount" numeric default 0;
+alter table public.orders add column if not exists "overrideTotal" numeric;
 
 alter table public.shipments add column if not exists eta text;
 alter table public.shipments add column if not exists "deliveryPhotos" jsonb default '[]'::jsonb;
 alter table public.shipments add column if not exists "deliveredItems" jsonb default '[]'::jsonb;
+alter table public.shipments add column if not exists "isTaxable" boolean default true;
+alter table public.shipments add column if not exists "discountAmount" numeric default 0;
+alter table public.shipments add column if not exists "overrideTotal" numeric;
 
 alter table public.invoices add column if not exists subtotal numeric default 0;
 alter table public.invoices add column if not exists "deliveryFee" numeric default 0;
