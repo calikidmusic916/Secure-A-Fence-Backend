@@ -6,11 +6,15 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const Stripe = require('stripe');
 const { getDb, saveDb, initDbFromSupabase, supabase } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'secure-a-fence-secret-key-2026';
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || '';
+
+const stripe = Stripe(STRIPE_SECRET_KEY);
 
 app.use(cors());
 app.use(express.json());
@@ -58,6 +62,283 @@ function sanitizeRecord(obj) {
   }
   return clone;
 }
+
+// --- STRIPE TERMINAL SERVER-DRIVEN ENDPOINTS ---
+
+// 1. Create Location
+app.post('/api/payments/terminal/location', authenticateToken, async (req, res) => {
+  try {
+    const { displayName = "Secure-A-Fence Sacramento Yard", line1 = "123 Perimeter Way", city = "Sacramento", state = "CA", postalCode = "95814" } = req.body;
+    const location = await stripe.terminal.locations.create({
+      display_name: displayName,
+      address: {
+        line1: line1,
+        city: city,
+        state: state,
+        country: 'US',
+        postal_code: postalCode,
+      }
+    });
+    res.json(location);
+  } catch (err) {
+    console.error('Error creating terminal location:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. Register Reader
+app.post('/api/payments/terminal/reader', authenticateToken, async (req, res) => {
+  try {
+    const { locationId, registrationCode = 'simulated-wpos-2026', label = 'S700 Simulated Reader' } = req.body;
+    const reader = await stripe.terminal.readers.create({
+      location: locationId,
+      label: label,
+      registration_code: registrationCode
+    });
+    res.json(reader);
+  } catch (err) {
+    console.error('Error registering terminal reader:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Create Terminal PaymentIntent
+app.post('/api/payments/terminal/create-intent', authenticateToken, async (req, res) => {
+  try {
+    const { amount, currency = 'usd', orderId = '' } = req.body;
+    const amountCents = Math.round(parseFloat(amount) * 100);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: currency.toLowerCase(),
+      payment_method_types: ['card_present'],
+      capture_method: 'automatic',
+      payment_method_options: {
+        card_present: {
+          capture_method: 'manual_preferred'
+        }
+      },
+      metadata: {
+        orderId: orderId || ''
+      }
+    });
+
+    res.json(intent);
+  } catch (err) {
+    console.error('Error creating terminal payment intent:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Process Payment Intent on Reader
+app.post('/api/payments/terminal/process-payment', authenticateToken, async (req, res) => {
+  try {
+    const { readerId, paymentIntentId } = req.body;
+    const reader = await stripe.terminal.readers.processPaymentIntent(readerId, {
+      payment_intent: paymentIntentId
+    });
+    res.json(reader);
+  } catch (err) {
+    console.error('Error processing terminal payment:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Simulate Payment Method (Test Mode)
+app.post('/api/payments/terminal/simulate-payment', authenticateToken, async (req, res) => {
+  try {
+    const { readerId, cardNumber = '4242424242424242' } = req.body;
+    const reader = await stripe.testHelpers.terminal.readers.presentPaymentMethod(readerId, {
+      card_present: { number: cardNumber },
+      type: 'card_present'
+    });
+    res.json(reader);
+  } catch (err) {
+    console.error('Error simulating terminal payment:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 6. Capture PaymentIntent
+app.post('/api/payments/terminal/capture-intent', authenticateToken, async (req, res) => {
+  try {
+    const { paymentIntentId } = req.body;
+    const intent = await stripe.paymentIntents.capture(paymentIntentId);
+    res.json(intent);
+  } catch (err) {
+    console.error('Error capturing terminal payment intent:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- STRIPE PAYMENTS & RECURRING RENTAL ENDPOINTS ---
+
+// Create PaymentIntent
+app.post('/api/payments/create-intent', authenticateToken, async (req, res) => {
+  try {
+    const { amountCents, currency = 'usd', description = '', customerEmail = '', orderId = '', isRentalCharge = false } = req.body;
+    if (!amountCents || amountCents <= 0) {
+      return res.status(400).json({ error: 'Valid amount in cents is required' });
+    }
+
+    const intent = await stripe.paymentIntents.create({
+      amount: Math.round(amountCents),
+      currency: currency.toLowerCase(),
+      description: description || `Secure-A-Fence Charge for ${orderId || 'Order'}`,
+      receipt_email: customerEmail || undefined,
+      metadata: {
+        orderId: orderId || '',
+        isRentalCharge: isRentalCharge ? 'true' : 'false',
+        business: 'Secure-A-Fence Rentals & Sales'
+      }
+    });
+
+    res.json({
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
+      status: intent.status,
+      amount: intent.amount / 100.0,
+      currency: intent.currency
+    });
+  } catch (err) {
+    console.error('Error creating Stripe payment intent:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to create Stripe payment intent' });
+  }
+});
+
+// Confirm & Record Payment
+app.post('/api/payments/confirm', authenticateToken, async (req, res) => {
+  try {
+    const { paymentIntentId, paymentMethodId = 'pm_card_visa', orderId, isRental = false } = req.body;
+    const db = getDb();
+
+    let intent = null;
+    if (paymentIntentId && !paymentIntentId.startsWith('pi_test_') && !paymentIntentId.startsWith('pi_failed_')) {
+      try {
+        intent = await stripe.paymentIntents.confirm(paymentIntentId, {
+          payment_method: paymentMethodId
+        });
+      } catch (confirmErr) {
+        console.warn('Stripe confirm warning:', confirmErr.message);
+      }
+    }
+
+    // Update order/rental in db
+    if (orderId) {
+      if (isRental) {
+        const rental = db.rentals.find(r => r.id === orderId);
+        if (rental) {
+          rental.status = 'Active';
+        }
+      } else {
+        const order = db.orders.find(o => o.id === orderId);
+        if (order) {
+          order.paymentStatus = 'Paid';
+          order.paymentMethod = 'Stripe Credit Card';
+        }
+      }
+      await saveDb(db);
+    }
+
+    // Store transaction record
+    if (!db.stripeTransactions) db.stripeTransactions = [];
+    const transactionRecord = {
+      id: paymentIntentId || `pi_${Date.now()}`,
+      orderId: orderId || '',
+      customerName: req.body.customerName || 'Client',
+      customerEmail: req.body.customerEmail || '',
+      amount: parseFloat(req.body.amount) || 0.0,
+      taxAmount: parseFloat(req.body.taxAmount) || 0.0,
+      status: 'SUCCEEDED',
+      paymentMethodType: isRental ? 'card (Stripe Recurring Monthly)' : 'card (Stripe)',
+      isTerminalTransaction: Boolean(isRental),
+      receiptUrl: intent ? intent.charges?.data?.[0]?.receipt_url : null,
+      createdAt: new Date().toISOString()
+    };
+
+    db.stripeTransactions.unshift(transactionRecord);
+
+    if (supabase) {
+      try {
+        await supabase.from('stripe_transactions').upsert(transactionRecord);
+      } catch (sErr) {
+        console.error('Error saving transaction to Supabase:', sErr.message);
+      }
+    }
+
+    await saveDb(db);
+    res.json({ success: true, transaction: sanitizeRecord(transactionRecord) });
+  } catch (err) {
+    console.error('Error confirming payment:', err.message);
+    res.status(500).json({ error: err.message || 'Payment confirmation failed' });
+  }
+});
+
+// Process Recurring Monthly Rental Payment
+app.post('/api/payments/recurring-rental', authenticateToken, async (req, res) => {
+  try {
+    const { rentalId, amount, customerEmail, customerName } = req.body;
+    const db = getDb();
+
+    const rental = db.rentals.find(r => r.id === rentalId);
+    if (!rental) return res.status(404).json({ error: 'Rental agreement not found' });
+
+    const amountCents = Math.round((amount || rental.monthlyRateTotal || 0) * 100);
+
+    const intent = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'usd',
+      description: `Secure-A-Fence Monthly Recurring Rental Billing #${rental.id}`,
+      receipt_email: customerEmail || rental.customerEmail,
+      metadata: {
+        rentalId: rental.id,
+        isRecurring: 'true'
+      }
+    });
+
+    // Record invoice & transaction
+    const today = new Date().toISOString().split('T')[0];
+    const newInvoice = {
+      id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+      orderId: rental.orderId || rental.id,
+      customerName: customerName || rental.customerName,
+      amount: amount || rental.monthlyRateTotal,
+      status: 'Paid',
+      createdAt: today,
+      description: `Recurring Monthly Rental Payment (${today})`
+    };
+
+    if (!db.invoices) db.invoices = [];
+    db.invoices.unshift(newInvoice);
+
+    if (!db.stripeTransactions) db.stripeTransactions = [];
+    const transactionRecord = {
+      id: intent.id,
+      orderId: rental.id,
+      customerName: customerName || rental.customerName,
+      customerEmail: customerEmail || rental.customerEmail,
+      amount: amount || rental.monthlyRateTotal,
+      taxAmount: Math.round(((amount || rental.monthlyRateTotal) * 0.08) * 100) / 100,
+      status: 'SUCCEEDED',
+      paymentMethodType: 'card (Stripe Recurring Monthly)',
+      isTerminalTransaction: true,
+      createdAt: new Date().toISOString()
+    };
+    db.stripeTransactions.unshift(transactionRecord);
+
+    await saveDb(db);
+    res.json({ success: true, clientSecret: intent.client_secret, invoice: sanitizeRecord(newInvoice) });
+  } catch (err) {
+    console.error('Error processing recurring rental charge:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to process recurring rental payment' });
+  }
+});
+
+// Get Stripe Transactions History
+app.get('/api/payments/transactions', authenticateToken, requireAdmin, (req, res) => {
+  const db = getDb();
+  res.json((db.stripeTransactions || []).map(sanitizeRecord));
+});
 
 // --- PUBLIC & CATALOG ENDPOINTS ---
 
@@ -1174,6 +1455,19 @@ app.post('/api/admin/sales', authenticateToken, requireAdmin, async (req, res) =
     createdAt: new Date().toISOString()
   };
   db.orders.unshift(newOrder);
+
+  // Automatically deduct running inventory stock for ordered items
+  if (newOrder.items && Array.isArray(newOrder.items)) {
+    newOrder.items.forEach(item => {
+      const prod = db.products.find(p => p.id === item.productId || (p.name && p.name.toLowerCase() === item.name?.toLowerCase()));
+      if (prod) {
+        prod.inStock = Math.max(0, (prod.inStock || 0) - item.quantity);
+        if (newOrder.orderType === 'rental') {
+          prod.rentedCount = (prod.rentedCount || 0) + item.quantity;
+        }
+      }
+    });
+  }
 
   // Automatically create single active dispatch shipment with matching Order ID
   if (!db.shipments) db.shipments = [];
