@@ -185,6 +185,7 @@ app.post('/api/payments/create-intent', async (req, res) => {
     const intent = await stripe.paymentIntents.create({
       amount: Math.round(amountCents),
       currency: currency.toLowerCase(),
+      payment_method_types: ['card'],
       description: description || `Secure-A-Fence Charge for ${orderId || 'Order'}`,
       receipt_email: (customerEmail && customerEmail.includes('@')) ? customerEmail : undefined,
       metadata: {
