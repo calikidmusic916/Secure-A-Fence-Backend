@@ -85,23 +85,6 @@ async function saveDb(data) {
   await syncToSupabase(data);
 }
 
-async function purgeOrphanedRecords(tableName, activeRecords) {
-  if (!supabase) return;
-  try {
-    const activeIds = (activeRecords || []).map(item => item.id);
-    const { data: existingSupabaseRecords } = await supabase.from(tableName).select('id');
-    if (existingSupabaseRecords) {
-      const orphaned = existingSupabaseRecords.map(e => e.id).filter(id => !activeIds.includes(id));
-      for (const orphanId of orphaned) {
-        await supabase.from(tableName).delete().eq('id', orphanId);
-        console.log(`Purged deleted record ${orphanId} permanently from Supabase table "${tableName}".`);
-      }
-    }
-  } catch (err) {
-    console.error(`Error purging orphaned records from Supabase table "${tableName}":`, err.message);
-  }
-}
-
 async function syncToSupabase(db) {
   if (!supabase) return;
   try {
@@ -116,49 +99,44 @@ async function syncToSupabase(db) {
         if (!copy.jobsites) copy.jobsites = [];
         return copy;
       });
-      const { error } = await supabase.from('users').upsert(dbUsersPayload);
-      if (error) console.error('Supabase users sync error:', error.message);
+      const { error: err1 } = await supabase.from('users').upsert(dbUsersPayload);
+      if (err1) {
+        // Fallback to customers table if users table name in Supabase is customers
+        const { error: err2 } = await supabase.from('customers').upsert(dbUsersPayload);
+        if (err2) console.error('Supabase users/customers sync error:', err2.message);
+      }
     }
-    await purgeOrphanedRecords('users', db.users);
 
-    if (db.products) {
+    if (db.products?.length > 0) {
       const dbProductsPayload = db.products.map(p => {
         const copy = { ...p };
         if (!copy.unit) copy.unit = 'unit';
         if (copy.suspended === undefined || copy.suspended === null) copy.suspended = false;
         return copy;
       });
-
-      if (dbProductsPayload.length > 0) {
-        const { error: prodErr } = await supabase.from('products').upsert(dbProductsPayload);
-        if (prodErr) console.error('Supabase products upsert error:', prodErr.message);
-      }
-      await purgeOrphanedRecords('products', db.products);
+      const { error: prodErr } = await supabase.from('products').upsert(dbProductsPayload);
+      if (prodErr) console.error('Supabase products upsert error:', prodErr.message);
     }
 
     if (db.orders?.length > 0) {
       const { error } = await supabase.from('orders').upsert(db.orders);
       if (error) console.error('Supabase orders sync error:', error.message);
     }
-    await purgeOrphanedRecords('orders', db.orders);
 
     if (db.rentals?.length > 0) {
       const { error } = await supabase.from('rentals').upsert(db.rentals);
       if (error) console.error('Supabase rentals sync error:', error.message);
     }
-    await purgeOrphanedRecords('rentals', db.rentals);
 
     if (db.shipments?.length > 0) {
       const { error } = await supabase.from('shipments').upsert(db.shipments);
       if (error) console.error('Supabase shipments sync error:', error.message);
     }
-    await purgeOrphanedRecords('shipments', db.shipments);
 
     if (db.invoices?.length > 0) {
       const { error } = await supabase.from('invoices').upsert(db.invoices);
       if (error) console.error('Supabase invoices sync error:', error.message);
     }
-    await purgeOrphanedRecords('invoices', db.invoices);
 
     console.log('Successfully synced data to Supabase.');
   } catch (err) {
@@ -166,7 +144,7 @@ async function syncToSupabase(db) {
   }
 }
 
-// Hydrate DB from Supabase on startup
+// Hydrate DB from Supabase on startup without deleting local records
 async function initDbFromSupabase() {
   if (!supabase) {
     console.log('No Supabase connection. Using local data.');
@@ -176,15 +154,21 @@ async function initDbFromSupabase() {
 
   console.log('Connecting to Supabase to fetch persistent data...');
   try {
+    let usersRes = await supabase.from('users').select('*');
+    if (usersRes.error || !usersRes.data || usersRes.data.length === 0) {
+      const custRes = await supabase.from('customers').select('*');
+      if (custRes.data && custRes.data.length > 0) {
+        usersRes = custRes;
+      }
+    }
+
     const [
-      { data: users },
       { data: products },
       { data: orders },
       { data: rentals },
       { data: shipments },
       { data: invoices }
     ] = await Promise.all([
-      supabase.from('users').select('*'),
       supabase.from('products').select('*'),
       supabase.from('orders').select('*'),
       supabase.from('rentals').select('*'),
@@ -192,41 +176,79 @@ async function initDbFromSupabase() {
       supabase.from('invoices').select('*')
     ]);
 
-    if (users) {
-      cachedDb.users = users.map(u => ({
+    const localDb = getLocalDb();
+
+    if (usersRes.data && usersRes.data.length > 0) {
+      const fetchedUsers = usersRes.data.map(u => ({
         ...u,
         jobsites: Array.isArray(u.jobsites) ? u.jobsites : (typeof u.jobsites === 'string' ? JSON.parse(u.jobsites) : []),
         isTaxable: u.isTaxable !== undefined ? Boolean(u.isTaxable) : true,
         businessAddress: u.businessAddress || ''
       }));
+
+      // Merge Supabase users with localDb users
+      const userMap = new Map();
+      (localDb.users || []).forEach(u => userMap.set(u.id, u));
+      fetchedUsers.forEach(u => userMap.set(u.id, u));
+      cachedDb.users = Array.from(userMap.values());
     }
-    if (products) {
-      cachedDb.products = products.map(p => ({
+
+    if (products && products.length > 0) {
+      const fetchedProducts = products.map(p => ({
         ...p,
         isRental: p.isRental !== undefined ? Boolean(p.isRental) : true,
         isPurchase: p.isPurchase !== undefined ? Boolean(p.isPurchase) : true
       }));
+
+      const prodMap = new Map();
+      (localDb.products || []).forEach(p => prodMap.set(p.id, p));
+      fetchedProducts.forEach(p => prodMap.set(p.id, p));
+      cachedDb.products = Array.from(prodMap.values());
     }
-    if (orders) {
-      cachedDb.orders = orders.map(o => ({
+
+    if (orders && orders.length > 0) {
+      const fetchedOrders = orders.map(o => ({
         ...o,
         isTaxable: o.isTaxable !== undefined ? Boolean(o.isTaxable) : true,
         discountAmount: parseFloat(o.discountAmount) || 0,
         overrideTotal: o.overrideTotal !== null && o.overrideTotal !== undefined ? parseFloat(o.overrideTotal) : null
       }));
+
+      const orderMap = new Map();
+      (localDb.orders || []).forEach(o => orderMap.set(o.id, o));
+      fetchedOrders.forEach(o => orderMap.set(o.id, o));
+      cachedDb.orders = Array.from(orderMap.values());
     }
-    if (rentals) cachedDb.rentals = rentals;
-    if (shipments) {
-      cachedDb.shipments = shipments.map(s => ({
+
+    if (rentals && rentals.length > 0) {
+      const rentalMap = new Map();
+      (localDb.rentals || []).forEach(r => rentalMap.set(r.id, r));
+      rentals.forEach(r => rentalMap.set(r.id, r));
+      cachedDb.rentals = Array.from(rentalMap.values());
+    }
+
+    if (shipments && shipments.length > 0) {
+      const fetchedShipments = shipments.map(s => ({
         ...s,
         isTaxable: s.isTaxable !== undefined ? Boolean(s.isTaxable) : true,
         discountAmount: parseFloat(s.discountAmount) || 0,
         overrideTotal: s.overrideTotal !== null && s.overrideTotal !== undefined ? parseFloat(s.overrideTotal) : null
       }));
-    }
-    if (invoices) cachedDb.invoices = invoices;
 
-    console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users from Supabase.`);
+      const shipMap = new Map();
+      (localDb.shipments || []).forEach(s => shipMap.set(s.id, s));
+      fetchedShipments.forEach(s => shipMap.set(s.id, s));
+      cachedDb.shipments = Array.from(shipMap.values());
+    }
+
+    if (invoices && invoices.length > 0) {
+      const invMap = new Map();
+      (localDb.invoices || []).forEach(inv => invMap.set(inv.id, inv));
+      invoices.forEach(inv => invMap.set(inv.id, inv));
+      cachedDb.invoices = Array.from(invMap.values());
+    }
+
+    console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users.`);
     isHydrated = true;
   } catch (e) {
     console.error('Supabase hydration error:', e.message);
