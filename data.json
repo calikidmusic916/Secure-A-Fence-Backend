@@ -7,7 +7,7 @@
       "passwordHash": "$2a$10$w0BInG8mPZf5m6Xp0w2v8OqU0N1c5eQ2W2X2Y2Z2a2b2c2d2e2f2g",
       "role": "admin",
       "company": "Secure-A-Fence Operations",
-      "phone": "916-573-9543"
+      "phone": "279-261-3890"
     },
     {
       "id": "cust-1",
@@ -17,24 +17,6 @@
       "role": "customer",
       "company": "Apex Construction Services",
       "phone": "(555) 234-5678"
-    },
-    {
-      "id": "cust-1787935513806",
-      "name": "Attacker",
-      "email": "attacker-1787935513526@test.com",
-      "passwordHash": "$2b$10$ctyhFxYe5yfIvIqDSnLRJuPWR0IjWiihFeFnHaibYa.awDGYMVIWi",
-      "role": "customer",
-      "company": "",
-      "phone": ""
-    },
-    {
-      "id": "cust-1787937478930",
-      "name": "Attacker",
-      "email": "attacker-1787937478697@test.com",
-      "passwordHash": "$2b$10$FfCyzlyqRkXz2l/0tgKXGedizsr6/Oxu0hn.V1tI84xeKiTls8zUK",
-      "role": "customer",
-      "company": "",
-      "phone": ""
     }
   ],
   "products": [
@@ -45,246 +27,19 @@
       "type": "panel",
       "salePrice": 65,
       "rentalPriceMonthly": 15,
-      "inStock": 300,
-      "rentedCount": 90,
+      "inStock": 3600,
+      "rentedCount": 1080,
       "description": "Heavy-duty 11-gauge galvanized chain-link mesh with sturdy welded tubular steel frame (6ft x 12ft). Fully refurbished and cross-braced.",
-      "image": "/assets/panel.svg",
-      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
-    },
-    {
-      "id": "prod-panel-6x10",
-      "name": "Refurbished Temporary Fence Panel (6' x 10')",
-      "category": "sales",
-      "type": "panel",
-      "salePrice": 50,
-      "rentalPriceMonthly": 12,
-      "inStock": 250,
-      "rentedCount": 60,
-      "description": "Standard 6ft x 10ft refurbished temporary chain-link fence panel. Ideal for tighter perimeters and flexible jobsite layouts.",
-      "image": "/assets/panel.svg",
-      "specs": "Dimensions: 6 ft High x 10 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized"
-    },
-    {
-      "id": "prod-stand-sale",
-      "name": "Flat Stand (Standard Tubular Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 10,
-      "rentalPriceMonthly": 3,
-      "inStock": 600,
-      "rentedCount": 130,
-      "description": "Lightweight and easy to handle rectangular tubular steel base with dual upright sleeves. Designed for standard hard asphalt and concrete perimeters.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Flat Stand | Dimensions: 36\" x 16\" | Weight: 24 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-braced",
-      "name": "Braced Stand (Windy Condition Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 15,
-      "rentalPriceMonthly": 4.5,
-      "inStock": 350,
-      "rentedCount": 85,
-      "description": "Includes angular diagonal steel bracing for high wind resistance and extra lateral support on open job sites.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Braced Stand | Feature: Dual Diagonal Support Struts | Weight: 32 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-heavyduty",
-      "name": "Heavy Duty Stand (Max Strength Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 18,
-      "rentalPriceMonthly": 5.5,
-      "inStock": 280,
-      "rentedCount": 70,
-      "description": "Built with reinforced dual cross-member grid tubes for maximum structural strength, long perimeter runs, and heavy traffic zones.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Heavy Duty Stand | Feature: Quad Cross-Bar Construction | Weight: 38 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-cross",
-      "name": "Cross Stand (Soft/Uneven Ground Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 12,
-      "rentalPriceMonthly": 3.5,
-      "inStock": 400,
-      "rentedCount": 95,
-      "description": "4-point wide footprint cross-pipe configuration ideal for dirt, gravel, turf, and soft uneven ground surfaces.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Cross Stand | Feature: 4-Way Surface Spanning Arms | Weight: 26 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-plate",
-      "name": "Plate Stand (Low Profile Flat Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 14,
-      "rentalPriceMonthly": 4,
-      "inStock": 320,
-      "rentedCount": 50,
-      "description": "Solid smooth steel plate base offering a flush, low-profile footprint to prevent tripping hazards on pedestrian walkways.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Plate Stand | Feature: Flush Beveled Steel Plate | Weight: 30 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-wheel",
-      "name": "Wheel Stand (Mobile Caster Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 25,
-      "rentalPriceMonthly": 7.5,
-      "inStock": 150,
-      "rentedCount": 40,
-      "description": "Equipped with heavy-duty locking swivel caster wheels for quick gate opening, repositioning, and mobile perimeter access points.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Wheel Stand | Feature: 4 Heavy-Duty Locking Casters | Weight: 34 lbs | Finish: Hot-Dip Galvanized"
-    },
-    {
-      "id": "prod-stand-sandbag",
-      "name": "Sandbag Stand (Weighted Base)",
-      "category": "sales",
-      "type": "stand",
-      "salePrice": 20,
-      "rentalPriceMonthly": 6,
-      "inStock": 220,
-      "rentedCount": 60,
-      "description": "Flat tubular steel frame base equipped with dual heavy-gauge canvas sandbags for extra stability against high winds and storms.",
-      "image": "/assets/stand.svg",
-      "specs": "Style: Sandbag Stand | Feature: Frame + 2 Pre-filled 50lb Sandbags | Total Weight: 124 lbs | Finish: Galvanized Steel"
-    },
-    {
-      "id": "prod-clip-sale",
-      "name": "Safety Clamp / Panel Connector Clip",
-      "category": "sales",
-      "type": "clip",
-      "salePrice": 5,
-      "rentalPriceMonthly": 1,
-      "inStock": 1200,
-      "rentedCount": 260,
-      "description": "High-tensile steel coupler clamp used to join adjacent fence panels together securely at top and mid rail.",
-      "image": "/assets/clip.svg",
-      "specs": "Material: Forged Steel | Bolt: 1/2\" Galvanized Carriage Bolt included"
-    },
-    {
-      "id": "prod-screen-sale",
-      "name": "6' Privacy / Windscreen Mesh Roll (50 ft)",
-      "category": "sales",
-      "type": "accessory",
-      "salePrice": 45,
-      "rentalPriceMonthly": 10,
-      "inStock": 80,
-      "rentedCount": 15,
-      "description": "High-density polyethylene knitted fabric providing 88% visual blockage and wind resistance for site privacy.",
-      "image": "/assets/privacy_screen.svg",
-      "specs": "Length: 50 ft | Height: 5'8\" | Brass Grommets every 24\""
+      "image": "/assets/panel.png",
+      "specs": "Dimensions: 6 ft High x 12 ft Wide | Frame: 1-3/8\" OD Steel | Mesh: 2-3/8\" Galvanized",
+      "suspended": false,
+      "unit": "LF",
+      "isRental": true,
+      "isPurchase": true
     }
   ],
-  "orders": [
-    {
-      "id": "ORD-8941",
-      "customerId": "cust-1",
-      "customerName": "John Builder",
-      "customerCompany": "Apex Construction Services",
-      "customerEmail": "john@apexconstruction.com",
-      "customerPhone": "(555) 234-5678",
-      "orderType": "sale",
-      "items": [
-        {
-          "productId": "prod-panel-6x10",
-          "name": "Refurbished Temporary Fence Panel (6' x 10')",
-          "unitPrice": 65,
-          "quantity": 20,
-          "total": 1300
-        },
-        {
-          "productId": "prod-stand-sale",
-          "name": "Heavy-Duty Fence Panel Stand / Base",
-          "unitPrice": 10,
-          "quantity": 21,
-          "total": 210
-        },
-        {
-          "productId": "prod-clip-sale",
-          "name": "Safety Clamp / Panel Connector Clip",
-          "unitPrice": 5,
-          "quantity": 20,
-          "total": 100
-        }
-      ],
-      "subtotal": 1610,
-      "deliveryFee": 150,
-      "tax": 128.8,
-      "totalAmount": 1888.8,
-      "status": "Delivered",
-      "deliveryAddress": "742 Evergreen Terrace, Jobsite Alpha, Metro Industrial Park",
-      "deliveryDate": "2026-08-20",
-      "createdAt": "2026-08-18T10:30:00.000Z"
-    }
-  ],
-  "rentals": [
-    {
-      "id": "RNT-3021",
-      "orderId": "ORD-8941-R",
-      "customerId": "cust-1",
-      "customerName": "John Builder",
-      "customerCompany": "Apex Construction Services",
-      "customerEmail": "john@apexconstruction.com",
-      "customerPhone": "(555) 234-5678",
-      "jobsiteAddress": "1024 Commercial Way, Downtown Tower Project",
-      "jobsiteContact": "Mike Davis (Site Foreman - 555-987-6543)",
-      "startDate": "2026-08-01",
-      "endDate": "2026-09-01",
-      "monthlyRateTotal": 420,
-      "status": "Active",
-      "items": [
-        {
-          "productId": "prod-panel-sale",
-          "name": "Refurbished Panel (Rental)",
-          "quantity": 20,
-          "monthlyUnitPrice": 15,
-          "subtotal": 300
-        },
-        {
-          "productId": "prod-stand-sale",
-          "name": "Fence Stand (Rental)",
-          "quantity": 20,
-          "monthlyUnitPrice": 3,
-          "subtotal": 60
-        },
-        {
-          "productId": "prod-clip-sale",
-          "name": "Safety Clip (Rental)",
-          "quantity": 60,
-          "monthlyUnitPrice": 1,
-          "subtotal": 60
-        }
-      ],
-      "notes": "Installed along South perimeter. Customer requested extra clips."
-    }
-  ],
-  "shipments": [
-    {
-      "id": "SHIP-1002",
-      "orderId": "ORD-8941",
-      "type": "Outbound Sale Delivery",
-      "driverName": "Dave Miller (Truck #4)",
-      "dispatchDate": "2026-08-20",
-      "status": "Delivered",
-      "destination": "742 Evergreen Terrace, Jobsite Alpha",
-      "notes": "Unloaded with forklift on west gate."
-    },
-    {
-      "id": "SHIP-1003",
-      "orderId": "RNT-3021",
-      "type": "Rental Deployment",
-      "driverName": "Sam Jackson (Flatbed #2)",
-      "dispatchDate": "2026-08-01",
-      "status": "Delivered & Erected",
-      "destination": "1024 Commercial Way, Downtown Tower Project",
-      "notes": "Rental panel layout setup completed per site diagram."
-    }
-  ]
+  "orders": [],
+  "rentals": [],
+  "shipments": [],
+  "invoices": []
 }

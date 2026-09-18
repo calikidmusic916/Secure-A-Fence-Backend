@@ -205,7 +205,7 @@ async function syncToSupabase(db) {
   }
 }
 
-// Hydrate DB from Supabase on startup without deleting local records
+// Hydrate DB from Supabase on startup - Supabase is the single authoritative source of truth
 async function initDbFromSupabase() {
   if (!supabase) {
     console.log('No Supabase connection. Using local data.');
@@ -237,25 +237,17 @@ async function initDbFromSupabase() {
       supabase.from('invoices').select('*')
     ]);
 
-    const localDb = getLocalDb();
-
-    if (usersRes.data && usersRes.data.length > 0) {
-      const fetchedUsers = usersRes.data.map(u => ({
+    if (usersRes.data) {
+      cachedDb.users = usersRes.data.map(u => ({
         ...u,
         jobsites: Array.isArray(u.jobsites) ? u.jobsites : (typeof u.jobsites === 'string' ? JSON.parse(u.jobsites) : []),
         isTaxable: u.isTaxable !== undefined ? Boolean(u.isTaxable) : (u.is_taxable !== undefined ? Boolean(u.is_taxable) : true),
         businessAddress: u.businessAddress || u.business_address || ''
       }));
-
-      // Merge Supabase users with localDb users
-      const userMap = new Map();
-      (localDb.users || []).forEach(u => userMap.set(u.id, u));
-      fetchedUsers.forEach(u => userMap.set(u.id, u));
-      cachedDb.users = Array.from(userMap.values());
     }
 
-    if (products && products.length > 0) {
-      const fetchedProducts = products.map(p => ({
+    if (products) {
+      cachedDb.products = products.map(p => ({
         ...p,
         salePrice: p.salePrice !== undefined ? parseFloat(p.salePrice) : (parseFloat(p.sale_price) || 0),
         rentalPriceMonthly: p.rentalPriceMonthly !== undefined ? parseFloat(p.rentalPriceMonthly) : (parseFloat(p.rental_price_monthly) || 0),
@@ -264,15 +256,10 @@ async function initDbFromSupabase() {
         isRental: p.isRental !== undefined ? Boolean(p.isRental) : (p.is_rental !== undefined ? Boolean(p.is_rental) : true),
         isPurchase: p.isPurchase !== undefined ? Boolean(p.isPurchase) : (p.is_purchase !== undefined ? Boolean(p.is_purchase) : true)
       }));
-
-      const prodMap = new Map();
-      (localDb.products || []).forEach(p => prodMap.set(p.id, p));
-      fetchedProducts.forEach(p => prodMap.set(p.id, p));
-      cachedDb.products = Array.from(prodMap.values());
     }
 
-    if (orders && orders.length > 0) {
-      const fetchedOrders = orders.map(o => ({
+    if (orders) {
+      cachedDb.orders = orders.map(o => ({
         ...o,
         customerId: o.customerId || o.customer_id || '',
         customerName: o.customerName || o.customer_name || '',
@@ -289,15 +276,10 @@ async function initDbFromSupabase() {
         discountAmount: o.discountAmount !== undefined ? parseFloat(o.discountAmount) : (parseFloat(o.discount_amount) || 0),
         overrideTotal: o.overrideTotal !== null && o.overrideTotal !== undefined ? parseFloat(o.overrideTotal) : (o.override_total !== null && o.override_total !== undefined ? parseFloat(o.override_total) : null)
       }));
-
-      const orderMap = new Map();
-      (localDb.orders || []).forEach(o => orderMap.set(o.id, o));
-      fetchedOrders.forEach(o => orderMap.set(o.id, o));
-      cachedDb.orders = Array.from(orderMap.values());
     }
 
-    if (rentals && rentals.length > 0) {
-      const fetchedRentals = rentals.map(r => ({
+    if (rentals) {
+      cachedDb.rentals = rentals.map(r => ({
         ...r,
         orderId: r.orderId || r.order_id || '',
         customerId: r.customerId || r.customer_id || '',
@@ -311,15 +293,10 @@ async function initDbFromSupabase() {
         endDate: r.endDate || r.end_date || '',
         monthlyRateTotal: r.monthlyRateTotal !== undefined ? parseFloat(r.monthlyRateTotal) : (parseFloat(r.monthly_rate_total) || 0)
       }));
-
-      const rentalMap = new Map();
-      (localDb.rentals || []).forEach(r => rentalMap.set(r.id, r));
-      fetchedRentals.forEach(r => rentalMap.set(r.id, r));
-      cachedDb.rentals = Array.from(rentalMap.values());
     }
 
-    if (shipments && shipments.length > 0) {
-      const fetchedShipments = shipments.map(s => ({
+    if (shipments) {
+      cachedDb.shipments = shipments.map(s => ({
         ...s,
         orderId: s.orderId || s.order_id || '',
         driverName: s.driverName || s.driver_name || '',
@@ -330,27 +307,17 @@ async function initDbFromSupabase() {
         discountAmount: s.discountAmount !== undefined ? parseFloat(s.discountAmount) : (parseFloat(s.discount_amount) || 0),
         overrideTotal: s.overrideTotal !== null && s.overrideTotal !== undefined ? parseFloat(s.overrideTotal) : (s.override_total !== null && s.override_total !== undefined ? parseFloat(s.override_total) : null)
       }));
-
-      const shipMap = new Map();
-      (localDb.shipments || []).forEach(s => shipMap.set(s.id, s));
-      fetchedShipments.forEach(s => shipMap.set(s.id, s));
-      cachedDb.shipments = Array.from(shipMap.values());
     }
 
-    if (invoices && invoices.length > 0) {
-      const fetchedInvoices = invoices.map(inv => ({
+    if (invoices) {
+      cachedDb.invoices = invoices.map(inv => ({
         ...inv,
         orderId: inv.orderId || inv.order_id || '',
         customerName: inv.customerName || inv.customer_name || ''
       }));
-
-      const invMap = new Map();
-      (localDb.invoices || []).forEach(inv => invMap.set(inv.id, inv));
-      fetchedInvoices.forEach(inv => invMap.set(inv.id, inv));
-      cachedDb.invoices = Array.from(invMap.values());
     }
 
-    console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users.`);
+    console.log(`Persistence check: Loaded ${cachedDb.products?.length || 0} products, ${cachedDb.orders?.length || 0} orders, and ${cachedDb.users?.length || 0} users from Supabase.`);
     isHydrated = true;
   } catch (e) {
     console.error('Supabase hydration error:', e.message);
