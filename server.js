@@ -21,8 +21,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// UptimeRobot Health-Check Route
+app.get('/', (req, res) => {
+  res.status(200).send('Secure-A-Fence Backend is Live!');
+});
+
 // Configure Multer for in-memory storage (to upload to Supabase directly)
 const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 const upload = multer({ storage: storage });
 
 // Middleware to verify JWT Token
