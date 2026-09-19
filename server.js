@@ -29,7 +29,6 @@ app.get('/', (req, res) => {
 // Configure Multer for in-memory storage (to upload to Supabase directly)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-const upload = multer({ storage: storage });
 
 // Middleware to verify JWT Token
 function authenticateToken(req, res, next) {
